@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLCV 115 Exam 1 Study</title>
+<meta name="description" content="Retrieval-practice study site for CLCV 115 Exam 1: flashcards, picture quiz, map test, mock exam.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23C8643B'/%3E%3Cpath d='M18 44h28M22 44V24M32 44V24M42 44V24M16 24h32L32 14z' stroke='%231d1a17' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#/home">CLCV 115 <span>Exam 1</span></a>
+  <nav class="nav" id="nav">
+    <a href="#/home">Home</a>
+    <a href="#/learn">Stories</a>
+    <a href="#/flash">Flashcards</a>
+    <a href="#/pictures">Pictures</a>
+    <a href="#/map">Map</a>
+    <a href="#/quiz">Quiz</a>
+    <a href="#/review">Review Qs</a>
+    <a href="#/mock">Mock Exam</a>
+    <a href="#/errors">Mistakes</a>
+    <a href="#/tree">Family Tree</a>
+    <a href="#/match">Match</a>
+    <a href="#/cheatsheet">Cheat Sheet</a>
+    <a href="#/resources">Resources</a>
+  </nav>
+</header>
+
+<main id="app" tabindex="-1"></main>
+
+<footer class="footer">
+  <p class="integrity"><strong>Academic integrity:</strong> this site is for studying <em>before</em> the exam. Do not open it (or anything else) during a CBTF exam.</p>
+  <div class="footer-actions">
+    <button class="btn small" id="exportBtn" type="button">Export progress</button>
+    <label class="btn small file-btn">Import progress<input type="file" id="importInput" accept="application/json"></label>
+    <button class="btn small danger" id="resetBtn" type="button">Reset</button>
+    <span class="muted" id="storageNote"></span>
+  </div>
+</footer>
+
+<!-- Leaflet is optional: the map falls back to the review-slide map when offline -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/terms.js"></script>
+<script src="data/stories.js"></script>
+<script src="data/images.js"></script>
+<script src="data/places.js"></script>
+<script src="data/questions.js"></script>
+<script src="app.js"></script>
+<script src="modes/quiz.js"></script>
+<script src="modes/flash.js"></script>
+<script src="modes/pictures.js"></script>
+<script src="modes/map.js"></script>
+<script src="modes/mock.js"></script>
+<script src="modes/tree.js"></script>
+<script src="modes/match.js"></script>
+<script src="modes/pages.js"></script>
+<script>App.start();</script>
+</body>
+</html>
