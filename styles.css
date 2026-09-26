@@ -194,6 +194,7 @@ th { font-family: var(--head); font-size: .85rem; }
 .mnemonic { background: var(--warn-soft); border-radius: 8px; padding: 6px 10px; font-size: .9rem; margin-top: 8px; text-align: left; }
 .headsup { background: var(--warn-soft); border-left: 4px solid var(--warn); border-radius: 8px; padding: 8px 12px; font-size: .92rem; margin-top: 8px; text-align: left; }
 .headsup::before { content: "Heads-up: "; font-weight: 700; }
+.headsup.check-note::before { content: "Check this: "; }
 .rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
 .rate .btn { flex-direction: column; gap: 0; line-height: 1.2; }
 .rate .btn small { font-weight: 400; font-size: .72rem; color: var(--muted); }

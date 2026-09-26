@@ -12,8 +12,7 @@ window.DATA_PLACES = [
   { id: "sicily", name: "Sicily", lat: 37.6000, lng: 14.0154 }, { id: "malta", name: "Malta", lat: 35.9375, lng: 14.3754 },
   { id: "ephesus", name: "Ephesus", lat: 37.9397, lng: 27.3417 }, { id: "parnassus", name: "Mt. Parnassus", lat: 38.5357, lng: 22.6217 },
   { id: "thebes", name: "Thebes", lat: 38.3219, lng: 23.3190 }, { id: "mycenae", name: "Mycenae", lat: 37.7308, lng: 22.7561 },
-  { id: "babylon", name: "Babylon", lat: 32.5364, lng: 44.4209 }, { id: "cythera", name: "Cythera", lat: 36.2500, lng: 22.9900 },
-  { id: "arcadia", name: "Arcadia", lat: 37.5500, lng: 22.2000 }, { id: "lemnos", name: "Lemnos", lat: 39.9000, lng: 25.2500 },
+  { id: "babylon", name: "Babylon", lat: 32.5364, lng: 44.4209 },   { id: "arcadia", name: "Arcadia", lat: 37.5500, lng: 22.2000 }, { id: "lemnos", name: "Lemnos", lat: 39.9000, lng: 25.2500 },
   // extra distractors so region questions (Greece / Mesopotamia) get same-scale wrong answers
   { id: "egypt", name: "Egypt", lat: 27.0, lng: 30.5 }, { id: "anatolia", name: "Anatolia (Asia Minor)", lat: 39.0, lng: 33.0 },
   { id: "italy", name: "Italy", lat: 42.5, lng: 12.8 }, { id: "persia", name: "Persia (Iran)", lat: 32.0, lng: 53.0 }

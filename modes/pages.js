@@ -276,7 +276,7 @@
     root.append(el(`<div class="page-head"><h1>Lecture Notes</h1>
       <p>Everything from the lecture slide decks, condensed. Each lecture ends with its in-class questions and a quick check.
       Lecture-only questions are also mixed into Quiz and Mock Exam (topic “Lecture slides”) and the terms have their own flashcard deck.</p>
-      <p class="headsup">No slide decks for Week 3 (Sept 8 & 10) or Week 5 (review). Week 3's content (Zeus & Hera, Poseidon, Hades, Apollo, Artemis, Delos, Delphi…) is covered by the study-guide terms, Story clusters C5–C6 and the review-lecture questions.</p></div>`));
+      <p class="small muted">Sources: slide decks for Aug 27, Sept 1, 3, 8, 10, 15 and your own notes for every lecture from Aug 25 to Sept 22 (Sept 17 and the review are from your notes only). “Check this” boxes flag places where your notes differ from the slides or study guide.</p></div>`));
     const nav = el(`<div class="story-nav"></div>`);
     L.forEach((l, k) => {
       const b = el(`<button class="chip" type="button">${esc(l.date)}</button>`);
@@ -292,19 +292,26 @@
       App.$$(".chip", nav).forEach((c, k) => c.classList.toggle("on", k === i));
       host.innerHTML = "";
       App.onKey = null;
-      const card = el(`<div class="card story"><div class="muted small">${esc(l.date)} · ${esc(l.powell)}</div><h2>${esc(l.title)}</h2></div>`);
+      const card = el(`<div class="card story"><div class="muted small">${esc(l.date)} · ${esc(l.powell)}${l.notesOnly ? " · from your notes (no slide deck)" : ""}</div><h2>${esc(l.title)}</h2></div>`);
       l.sections.forEach(([h, items]) => {
         card.append(el(`<h3 style="margin-top:14px">${esc(h)}</h3>`));
         card.append(el(`<ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul>`));
       });
       host.append(card);
+      if ((l.mynotes && l.mynotes.length) || (l.fix && l.fix.length)) {
+        const mine = el(`<div class="card story"><h2>From your notes</h2></div>`);
+        if (l.mynotes && l.mynotes.length) mine.append(el(`<ul>${l.mynotes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`));
+        (l.fix || []).forEach((f) => mine.append(el(`<div class="headsup check-note">${f}</div>`)));
+        host.append(mine);
+      }
       const ic = el(`<div class="card"><h2>In-class questions</h2></div>`);
+      if (!l.inclass.length) ic.append(el(`<p class="muted small">No in-class questions recorded for this lecture.</p>`));
       l.inclass.forEach(([q, a]) => ic.append(el(`<details style="margin:8px 0"><summary><strong>${esc(q)}</strong></summary><p style="margin-top:6px">${esc(a)}</p></details>`)));
       host.append(ic);
       const bar = el(`<div class="spread" style="margin-bottom:16px">
         <button class="btn" data-p type="button" ${i === 0 ? "disabled" : ""}>← Previous</button>
-        <button class="btn primary" data-c type="button">Quick check (4 Qs)</button>
-        <button class="btn" data-all type="button">All ${App.questions.filter((q) => q.id.startsWith("L") && q.lec === l.id).length} questions from this lecture</button>
+        <button class="btn primary" data-c type="button">Quick check (${l.check.length} Qs)</button>
+        <button class="btn" data-all type="button">All ${App.questions.filter((q) => q.lec === l.id).length} questions from this lecture</button>
         <button class="btn" data-n type="button" ${i === L.length - 1 ? "disabled" : ""}>Next →</button></div>`);
       const box = el(`<div></div>`);
       host.append(bar, box);
@@ -312,7 +319,9 @@
       $("[data-n]", bar).onclick = () => { i++; draw(); };
       const run = (qs, title) => { box.innerHTML = ""; App.runQuiz(box, qs, { mode: "learn", title }); box.scrollIntoView({ block: "start", behavior: "smooth" }); };
       $("[data-c]", bar).onclick = () => run(l.check.map((id) => App.qById[id]).filter(Boolean), l.date + " check");
-      $("[data-all]", bar).onclick = () => run(App.shuffle(App.questions.filter((q) => q.id.startsWith("L") && q.lec === l.id)), l.date);
+      const own = App.questions.filter((q) => q.lec === l.id);
+      if (!own.length) $("[data-all]", bar).remove();
+      else $("[data-all]", bar).onclick = () => run(App.shuffle(App.questions.filter((q) => q.lec === l.id)), l.date);
       window.scrollTo(0, 0);
     }
     draw();
