@@ -33,9 +33,15 @@
   App.imgSrc = (file) => (file.startsWith("../") ? "assets/" + file.slice(3) : "assets/exam-images/" + file);
 
   // ------------------------------------------------------------------ data indexes
-  App.terms = window.DATA_TERMS || [];
+  // study-guide terms + lecture-slide terms; lecture facts are appended to matching terms
+  App.terms = (window.DATA_TERMS || []).concat(window.DATA_LECTURE_TERMS || []);
+  for (const [id, facts] of Object.entries(window.DATA_LECTURE_MORE || {})) {
+    const t = App.terms.find((x) => x.id === id);
+    if (t) t.more = App.uniq(t.more.concat(facts));
+  }
   App.termById = Object.fromEntries(App.terms.map((t) => [t.id, t]));
-  App.questions = window.DATA_QUESTIONS || [];
+  App.questions = (window.DATA_QUESTIONS || []).concat(window.DATA_LECTURE_QUESTIONS || []);
+  App.lectures = window.DATA_LECTURES || [];
   App.qById = Object.fromEntries(App.questions.map((q) => [q.id, q]));
   App.images = window.DATA_IMAGES || [];
   App.imgById = Object.fromEntries(App.images.map((i) => [i.id, i]));
@@ -44,12 +50,12 @@
   App.stories = window.DATA_STORIES || [];
 
   App.TAGS = ["review", "myth-theory", "succession", "mesopotamia", "prometheus", "flood", "zeus-hera", "apollo-artemis",
-    "hermes-pan", "aphrodite", "hephaestus-ares", "athena", "sources", "concepts", "images", "maps", "roman-names"];
+    "hermes-pan", "aphrodite", "hephaestus-ares", "athena", "sources", "concepts", "images", "maps", "roman-names", "lecture"];
   App.TAG_LABEL = {
     review: "Review lecture", "myth-theory": "Myth theory", succession: "Creation & succession", mesopotamia: "Mesopotamia",
     prometheus: "Prometheus & Pandora", flood: "Flood", "zeus-hera": "Zeus, Hera & co.", "apollo-artemis": "Apollo & Artemis",
     "hermes-pan": "Hermes & Pan", aphrodite: "Aphrodite", "hephaestus-ares": "Hephaestus & Ares", athena: "Athena",
-    sources: "Source texts", concepts: "Concepts", images: "Images", maps: "Maps", "roman-names": "Roman names", auto: "Auto-generated"
+    sources: "Source texts", concepts: "Concepts", images: "Images", maps: "Maps", "roman-names": "Roman names", lecture: "Lecture slides", auto: "Auto-generated"
   };
   App.CLUSTER_TAG = { c1: "myth-theory", c2: "succession", c3: "mesopotamia", c4: "prometheus", c5: "zeus-hera",
     c6: "apollo-artemis", c7: "hermes-pan", c8: "aphrodite", c9: "athena" };

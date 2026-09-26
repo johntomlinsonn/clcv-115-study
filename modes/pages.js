@@ -17,7 +17,7 @@
     ["50 min", "Mock Exam #2 (new draw). Target ≥ 95%", "#/mock"],
     ["10 min", "“Final 10” sheet right before walking to the CBTF", "#/cheatsheet"]
   ];
-  const CAT_LABEL = { divinity: "Divinities", mortal: "Mortals", concept: "Concepts", place: "Places", source: "Sources", images: "Images", roman: "Roman names" };
+  const CAT_LABEL = { divinity: "Divinities", mortal: "Mortals", concept: "Concepts", place: "Places", source: "Sources", lecture: "Lecture slides", images: "Images", roman: "Roman names" };
 
   function nextAction(stats) {
     const st = App.state;
@@ -202,6 +202,17 @@
       <div class="card"><h2>Aegean map</h2><img src="assets/slide-images/map-aegean-labeled.gif" alt="Labeled Aegean map from the review slides" style="width:100%"></div></div>`);
     App.places.filter((p) => p.tested).forEach((p) => $("tbody", maps).append(el(`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.note)}</td></tr>`)));
     root.append(maps);
+    root.append(el(`<div class="card"><h2>Lecture-slide extras</h2><ul>
+      <li><b>Sumer ↔ Greece</b>: An = Uranus · Ki = Gaea · Inanna + Dumuzi = Aphrodite + Adonis · Enlil = Zeus · Ereshkigal = Persephone. Spread by <b>idea diffusion</b>.</li>
+      <li><b>Hittite Kingship in Heaven</b>: Alalush → Anush (Uranus) → Kumarbi (Cronus, castrates) → Teshub (Zeus, storms).</li>
+      <li><b>Mythos</b> = authoritative speech; myths spread <b>orally</b> (aoidoi); Linear B not for literature; alphabet c. 750 BCE.</li>
+      <li><b>Hesiod</b> (750–700 BCE, pessimistic) organizes by <b>space, genealogy, themes</b>; duplicates Cronus:Zeus, Ocean:Nereus, Eros:Aphrodite, Hyperion:Helios.</li>
+      <li><b>Typhoeus</b>: Apollodorus variant — beats Zeus first; Hermes & Aegipan rescue; buried under <b>Mt. Etna</b>. Kill + snake = <b>Indo-European</b> formula; dragon combat = cosmogony.</li>
+      <li><b>Prometheus</b>: Hesiod justifies Zeus (creation = sex) · Aeschylus (525–456) Prometheus as victim, gifts of knowledge, Thetis secret · Ovid (exiled by Augustus) Prometheus crafts humans, Zeus a tyrant. Fire in a <b>fennel stalk</b>.</li>
+      <li><b>Five Races</b> ≈ Nebuchadnezzar's dream (Daniel). Floods: Ziusudra → Atrahasis / Utnapishtim → Noah → Deucalion & Pyrrha (Themis instructs; <b>theoxeny</b>).</li>
+      <li><b>Hermes</b>: herm = stone heap/boundary → apotropaic, fertility; psychopompos; Argeiphontes; Mt. Cyllene; cradle = winnowing fan; 12 portions spoof a test of divinity; god of thieves.</li>
+      <li><b>Pan</b> &lt; “feed”; Syrinx & Echo; caves. <b>Hephaestus</b> &lt; Lemnos; clothed, bearded, seated laborer. <b>Ares</b> = war, disliked, no cult (vs. Mars: Romulus & Remus, March, wolf); kids Phobos, Deimos, Eros, Harmonia.</li></ul>
+      <p class="small"><a href="#/lectures">Full lecture notes →</a></p></div>`));
     const hu = el(`<div class="card"><h2>Heads-up: where sources disagree</h2><ul></ul></div>`);
     App.terms.filter((t) => t.headsup && t.id !== "hera").forEach((t) => $("ul", hu).append(el(`<li><strong>${esc(t.term)}:</strong> ${esc(t.headsup)}</li>`)));
     root.append(hu);
@@ -257,5 +268,53 @@
       <li><b>Exam pace</b> — 40-second pace bar; mock = 75 Q / 50 min.</li>
       <li><b>Error log</b> — every miss goes to Fix-My-Mistakes.</li>
       <li><b>Sleep</b> — consolidation happens overnight.</li></ul></div>`));
+  });
+  // ------------------------------------------------------------------ #/lectures
+  App.route("lectures", function (root, args) {
+    const L = App.lectures;
+    let i = Math.max(0, L.findIndex((l) => l.id === args[0]));
+    root.append(el(`<div class="page-head"><h1>Lecture Notes</h1>
+      <p>Everything from the lecture slide decks, condensed. Each lecture ends with its in-class questions and a quick check.
+      Lecture-only questions are also mixed into Quiz and Mock Exam (topic “Lecture slides”) and the terms have their own flashcard deck.</p>
+      <p class="headsup">No slide decks for Week 3 (Sept 8 & 10) or Week 5 (review). Week 3's content (Zeus & Hera, Poseidon, Hades, Apollo, Artemis, Delos, Delphi…) is covered by the study-guide terms, Story clusters C5–C6 and the review-lecture questions.</p></div>`));
+    const nav = el(`<div class="story-nav"></div>`);
+    L.forEach((l, k) => {
+      const b = el(`<button class="chip" type="button">${esc(l.date)}</button>`);
+      b.onclick = () => { i = k; draw(); };
+      nav.append(b);
+    });
+    root.append(nav);
+    const host = el(`<div></div>`);
+    root.append(host);
+    function draw() {
+      const l = L[i];
+      if (location.hash !== "#/lectures/" + l.id) history.replaceState(null, "", "#/lectures/" + l.id);
+      App.$$(".chip", nav).forEach((c, k) => c.classList.toggle("on", k === i));
+      host.innerHTML = "";
+      App.onKey = null;
+      const card = el(`<div class="card story"><div class="muted small">${esc(l.date)} · ${esc(l.powell)}</div><h2>${esc(l.title)}</h2></div>`);
+      l.sections.forEach(([h, items]) => {
+        card.append(el(`<h3 style="margin-top:14px">${esc(h)}</h3>`));
+        card.append(el(`<ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul>`));
+      });
+      host.append(card);
+      const ic = el(`<div class="card"><h2>In-class questions</h2></div>`);
+      l.inclass.forEach(([q, a]) => ic.append(el(`<details style="margin:8px 0"><summary><strong>${esc(q)}</strong></summary><p style="margin-top:6px">${esc(a)}</p></details>`)));
+      host.append(ic);
+      const bar = el(`<div class="spread" style="margin-bottom:16px">
+        <button class="btn" data-p type="button" ${i === 0 ? "disabled" : ""}>← Previous</button>
+        <button class="btn primary" data-c type="button">Quick check (4 Qs)</button>
+        <button class="btn" data-all type="button">All ${App.questions.filter((q) => q.id.startsWith("L") && q.lec === l.id).length} questions from this lecture</button>
+        <button class="btn" data-n type="button" ${i === L.length - 1 ? "disabled" : ""}>Next →</button></div>`);
+      const box = el(`<div></div>`);
+      host.append(bar, box);
+      $("[data-p]", bar).onclick = () => { i--; draw(); };
+      $("[data-n]", bar).onclick = () => { i++; draw(); };
+      const run = (qs, title) => { box.innerHTML = ""; App.runQuiz(box, qs, { mode: "learn", title }); box.scrollIntoView({ block: "start", behavior: "smooth" }); };
+      $("[data-c]", bar).onclick = () => run(l.check.map((id) => App.qById[id]).filter(Boolean), l.date + " check");
+      $("[data-all]", bar).onclick = () => run(App.shuffle(App.questions.filter((q) => q.id.startsWith("L") && q.lec === l.id)), l.date);
+      window.scrollTo(0, 0);
+    }
+    draw();
   });
 })();

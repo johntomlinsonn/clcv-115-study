@@ -60,6 +60,7 @@
     { id: "concept", name: "Concepts", desc: "aegis → xenia" },
     { id: "place", name: "Places", desc: "the 7 map places" },
     { id: "source", name: "Sources", desc: "texts & authors" },
+    { id: "lecture", name: "Lecture slides", desc: "terms from the Aug 27–Sept 15 decks" },
     { id: "images", name: "Images", desc: "the 14 tested images" },
     { id: "roman", name: "Roman names", desc: "Zeus → Jupiter…" },
     ...App.stories.map((s) => ({ id: s.id, name: s.id.toUpperCase() + " · " + s.title.split("(")[0].trim(), desc: "story cluster" })),

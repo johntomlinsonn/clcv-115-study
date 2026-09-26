@@ -13,16 +13,16 @@
         N("Titans", "12 children of Gaea & Uranus", [["", [
           N("Cronus", "castrates Uranus; swallows his children", [["+ Rhea", [
             N("Hestia"), N("Demeter"), N("Hades", "“invisible”"), N("Poseidon"),
-            N("Hera", "", [["alone (Hesiod)", [N("Hephaestus", "lame smith god")]], ["+ Zeus", [N("Ares", "war")]]]),
+            N("Hera", "", [["alone (Hesiod)", [N("Hephaestus", "lame smith god", [["", [N("Erichthonius", "early Athenian king")]]])]], ["+ Zeus", [N("Ares", "war", [["+ Aphrodite", [N("Phobos & Deimos", "fear"), N("Eros", "variant parentage"), N("Harmonia", "harmony")]]]), N("Eileithyia", "childbirth")]]]),
             N("Zeus", "youngest; king of the Olympians", [
               ["+ Metis", [N("Athena", "born from Zeus' head")]],
               ["+ Leto", [N("Apollo", "", [["+ Coronis", [N("Asclepius", "raised the dead")]]]), N("Artemis")]],
-              ["+ Maia", [N("Hermes", "", [["", [N("Pan", "goat god")]], ["+ Aphrodite", [N("Hermaphroditus")]]])]]
+              ["+ Maia", [N("Hermes", "", [["+ Penelope (per lecture)", [N("Pan", "goat god")]], ["+ Aphrodite", [N("Hermaphroditus")]]])]]
             ])
           ]]]),
-          N("Oceanus", "with Tethys: origin of gods in Homer"),
+          N("Oceanus", "origin of gods in Homer", [["+ Tethys", [N("Oceanids", "6000 children")]]]),
           N("Hyperion", "", [["", [N("Helios", "sun god")]]]),
-          N("Iapetus", "", [["", [
+          N("Iapetus", "", [["+ Themis (lecture; Clymene in Hesiod)", [
             N("Prometheus", "“forethought”", [["", [N("Deucalion", "flood survivor", [["+ Pyrrha", [N("Hellen", "eponymous ancestor of the Greeks", [["", [N("Dorus"), N("Aeolus"), N("Xuthus", "", [["", [N("Ion")]]])]]])]]])]]]),
             N("Epimetheus", "“afterthought”", [["+ Pandora", [N("Pyrrha", "wife of Deucalion")]]]),
             N("Atlas", "holds up the sky", [["", [N("Maia", "nymph, mother of Hermes")]]])
@@ -33,6 +33,7 @@
         N("Cyclopes", "forge Zeus' thunderbolt"),
         N("Hundred-handers", "hurl boulders")
       ]],
+      ["+ Pontus (sea)", [N("Nereus", "sea god", [["+ Doris", [N("Nereids", "50 sea nymphs", [["", [N("Thetis", "mother of Achilles")]]])]]])]],
       ["Uranus' blood + Earth", [N("Furies (Erinyes)", "punish kin-killers")]],
       ["Uranus' genitals + sea", [N("Aphrodite", "from the foam; lands at Cyprus", [["+ Anchises", [N("Aeneas")]]])]]
     ]),

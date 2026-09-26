@@ -25,7 +25,7 @@
     const opts = shuffle([correct, ...wrongs]);
     return Object.assign({ id, tags, q, opts, ans: opts.indexOf(correct), why }, extra || {});
   }
-  const who = (t) => (t.cat === "concept" ? "What is" : t.cat === "place" ? "What is" : t.cat === "source" ? "What is" : "Who is");
+  const who = (t) => (t.cat === "divinity" || t.cat === "mortal" ? "Who is" : "What is");
 
   G.termToDef = function (t) {
     const pool = App.terms.filter((x) => x.cat === t.cat);

@@ -20,9 +20,14 @@
     const handMap = App.questions.filter((q) => q.map && canMap(q));
 
     const nHand = Math.round(N * 0.35), nImg = Math.round(N * 0.15), nMap = Math.round(N * 0.05);
-    const byTag = {};
-    hand.forEach((q) => { const t = q.tags.find((x) => x !== "review") || "review"; (byTag[t] = byTag[t] || []).push(q); });
-    const picked = balanced(byTag, nHand);
+    // ~60% study-guide/review questions, ~40% lecture-slide questions, each balanced by topic
+    const group = (qs) => {
+      const g = {};
+      qs.forEach((q) => { const t = q.tags.find((x) => x !== "review" && x !== "lecture") || "review"; (g[t] = g[t] || []).push(q); });
+      return g;
+    };
+    const nLecture = Math.round(nHand * 0.4);
+    const picked = balanced(group(hand.filter((q) => !q.lec)), nHand - nLecture).concat(balanced(group(hand.filter((q) => q.lec)), nLecture));
 
     const imgHand = sample(handImg, Math.ceil(nImg / 2));
     const usedImgs = new Set(imgHand.map((q) => q.img));
@@ -46,7 +51,7 @@
   App.route("mock", function (root) {
     const mocks = App.state.mocks;
     root.append(el(`<div class="page-head"><h1>Mock Exam</h1>
-      <p><strong>75 questions · 50:00</strong> — the real CBTF format (≈ 40 s per question). Mix: ~35% hand-written/review, ~15% images, ~5% maps, the rest generated from every study-guide term.
+      <p><strong>75 questions · 50:00</strong> — the real CBTF format (≈ 40 s per question). Mix: ~35% hand-written (review lecture, study guide, lecture slides), ~15% images, ~5% maps, the rest generated from every study-guide term.
       Flag and come back; the exam auto-submits at 0:00. Target ≥ 95% before you go.</p></div>`));
     const card = el(`<div class="card stack">
       <div class="row"><button class="btn primary" type="button" id="startMock">Start mock exam</button>
