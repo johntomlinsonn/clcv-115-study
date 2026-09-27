@@ -117,8 +117,17 @@
     const cands = tested.filter((x) => !x.region && App.MapKit.canShow(x.id));
     p = p || pick(cands);
     if (!p || p.region) return null;
-    const others = sample(G.nearest(p, 5).filter((x) => App.MapKit.canShow(x.id)), 3);
-    const markers = shuffle([p, ...others]);
+    // Distractor markers: near the target (harder) but far enough apart not to overlap on the map
+    const MK = App.MapKit, view = MK.viewFor([p]);
+    const sep = view === "aegean" ? 70 : 350;
+    const pool = shuffle(G.nearest(p, view === "wide" ? 30 : 10).filter((x) => MK.canShow(x.id) && (view === "wide" || MK.viewFor([x]) === "aegean")));
+    const chosen = [p];
+    for (const x of pool) {
+      if (chosen.length === 4) break;
+      if (chosen.every((c) => MK.km(c, x) >= sep)) chosen.push(x);
+    }
+    if (chosen.length < 4) return null;
+    const markers = shuffle(chosen);
     return { id: `auto:mapmean:${p.id}`, tags: ["maps", "auto"], q: `Which marker is <b>${esc(p.meaning)}</b>?`,
       opts: markers.map((m, i) => `Marker ${"ABCD"[i]}`), ans: markers.indexOf(p), noShuffle: true,
       mapMarkers: markers.map((m) => m.id), why: `${esc(p.name)}: ${esc(p.note)}.` };

@@ -1,15 +1,13 @@
-/* Map Test (§6): MapKit helpers (Leaflet with offline fallback) + #/map page. */
+/* Map Test (§6): unlabeled static maps (no tiles, no API key, works offline) + #/map page.
+   Maps come from tools/build_maps.py: equirectangular SVGs with bounds in data/maps.js. */
 (function () {
   "use strict";
-  const { $, el, esc, shuffle, sample } = App;
+  const { $, el, esc, shuffle } = App;
   const MK = (App.MapKit = {});
-  const FB = window.DATA_FALLBACK_MAP;
+  const MAPS = window.DATA_MAPS || {};
   const REGIONS = window.DATA_REGIONS || {};
-  const AEGEAN = [[34.7, 19.6], [41.9, 28.4]];
-  const WIDE = [[28.5, 17], [43.5, 50]];
-  const TILE = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+  const NS = "http://www.w3.org/2000/svg";
 
-  MK.leaflet = () => typeof window.L !== "undefined" && !!window.L.map;
   MK.km = function (a, b) {
     const R = 6371, toR = Math.PI / 180;
     const dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
@@ -24,78 +22,64 @@
     }
     return inside;
   };
-  // fallback image projection (fractions of image size)
-  MK.toFrac = (lat, lng) => ({ x: (FB.x0 + (lng - FB.lng0) * FB.pxPerLng) / FB.w, y: (FB.y0 - (lat - FB.lat0) * FB.pxPerLat) / FB.h });
-  MK.fromFrac = (fx, fy) => ({ lat: FB.lat0 + (FB.y0 - fy * FB.h) / FB.pxPerLat, lng: FB.lng0 + (fx * FB.w - FB.x0) / FB.pxPerLng });
-  const onFallback = (p) => { const f = MK.toFrac(p.lat, p.lng); return !p.region && f.x > 0.03 && f.x < 0.97 && f.y > 0.03 && f.y < 0.97; };
-  MK.canShow = (id) => { const p = App.placeById[id]; return !!p && (MK.leaflet() || onFallback(p)); };
-  const isAegean = (p) => !p.region && p.lat > AEGEAN[0][0] && p.lat < AEGEAN[1][0] && p.lng > AEGEAN[0][1] && p.lng < AEGEAN[1][1];
+  // Every tested place fits on one of the two maps, so everything can always be shown.
+  MK.canShow = (id) => !!App.placeById[id];
 
-  // Keep track of Leaflet instances so re-rendered questions don't leak maps.
-  let live = [];
-  function prune() {
-    live = live.filter((m) => {
-      if (m.getContainer().isConnected) return true;
-      try { m.remove(); } catch (e) { /* already gone */ }
-      return false;
-    });
-  }
-  function makeMap(holder, bounds, opts = {}) {
-    prune();
-    const div = el(`<div class="mapbox" role="application" aria-label="Map"></div>`);
-    if (opts.height) div.style.height = opts.height;
-    holder.append(div);
-    const map = window.L.map(div, { scrollWheelZoom: false, zoomSnap: 0.25, worldCopyJump: false });
-    window.L.tileLayer(TILE, { attribution: "© OpenStreetMap contributors © CARTO", subdomains: "abcd", maxZoom: 12 }).addTo(map);
-    map.fitBounds(bounds, { padding: [8, 8] });
-    live.push(map);
-    App.onCleanup(() => { try { map.remove(); } catch (e) { /* ignore */ } });
-    // Leaflet needs a size recalc once the element is laid out
-    setTimeout(() => map.invalidateSize(), 60);
-    return map;
-  }
-  const L = () => window.L;
-  function starIcon() { return L().divIcon({ className: "", html: `<div class="star-icon">★</div>`, iconSize: [34, 34], iconAnchor: [17, 17] }); }
-  function letterIcon(t) { return L().divIcon({ className: "", html: `<div class="letter-icon">${t}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] }); }
-  function addMark(map, p, style) {
-    if (style === "region" || p.region) {
-      if (REGIONS[p.region || p.id]) L().polygon(REGIONS[p.region || p.id], { color: "#ff2d2d", weight: 3, fillOpacity: 0.18 }).addTo(map);
-    } else if (style === "circle") {
-      L().circleMarker([p.lat, p.lng], { radius: 16, color: "#ff2d2d", weight: 4, fill: false }).addTo(map);
-    } else {
-      L().marker([p.lat, p.lng], { icon: starIcon(), keyboard: false }).addTo(map);
-    }
-  }
-  function boundsFor(places) {
-    if (places.every(isAegean)) return AEGEAN;
-    if (places.some((p) => p.region)) return WIDE;
-    const lats = places.map((p) => p.lat), lngs = places.map((p) => p.lng);
-    return [[Math.min(...lats, 34.5) - 1, Math.min(...lngs, 20) - 1], [Math.max(...lats, 41.5) + 1, Math.max(...lngs, 28) + 1]];
-  }
+  const inView = (v, p, margin = 0.3) => !p.region && p.lat > v.south + margin && p.lat < v.north - margin && p.lng > v.west + margin && p.lng < v.east - margin;
+  // Aegean close-up when every place fits on it; otherwise the wide map (Cyprus, Mesopotamia, regions)
+  MK.viewFor = (places) => (places.every((p) => inView(MAPS.aegean, p)) ? "aegean" : "wide");
 
-  function fallbackPic(holder) {
-    const box = el(`<div class="fallback-map"><img alt="Blank map of the Aegean" src="${FB.file}"></div>`);
+  // Draw a map with an SVG overlay in the map's own pixel space.
+  MK.draw = function (holder, viewId) {
+    const v = MAPS[viewId];
+    const box = el(`<div class="mapimg"><img alt="Blank map" draggable="false" src="${v.file}"></div>`);
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${v.w} ${v.h}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.classList.add("map-overlay");
+    box.append(svg);
     holder.append(box);
-    holder.append(el(`<div class="credit">Offline map (review slides). Cyprus and Mesopotamia need the online map.</div>`));
-    return box;
-  }
-  function fbMark(box, p, cls, text) {
-    const f = MK.toFrac(p.lat, p.lng);
-    box.append(el(`<span class="fb-marker ${cls}" style="left:${f.x * 100}%;top:${f.y * 100}%">${text || ""}</span>`));
-  }
+    // Marker sizes are given in screen pixels: convert via the map's displayed width
+    const S = v.w / (box.getBoundingClientRect().width || 360);
+    const xy = (lat, lng) => [((lng - v.west) / (v.east - v.west)) * v.w, ((v.north - lat) / (v.north - v.south)) * v.h];
+    const kmPerUnit = (lat) => ((v.east - v.west) * 111.32 * Math.cos((lat * Math.PI) / 180)) / v.w;
+    const add = (tag, attrs, text) => {
+      const n = document.createElementNS(NS, tag);
+      for (const [k, val] of Object.entries(attrs)) n.setAttribute(k, val);
+      if (text != null) n.textContent = text;
+      svg.append(n);
+      return n;
+    };
+    const api = {
+      box, svg, view: v,
+      toLatLng(evt) {
+        const r = box.getBoundingClientRect();
+        const fx = (evt.clientX - r.left) / r.width, fy = (evt.clientY - r.top) / r.height;
+        return { lat: v.north - fy * (v.north - v.south), lng: v.west + fx * (v.east - v.west) };
+      },
+      star(p) { const [x, y] = xy(p.lat, p.lng); add("text", { x, y, class: "mk-star", "font-size": 30 * S, "text-anchor": "middle", "dominant-baseline": "central" }, "★"); },
+      circle(p) { const [x, y] = xy(p.lat, p.lng); add("circle", { cx: x, cy: y, r: 15 * S, class: "mk-ring-halo", "stroke-width": 6 * S }); add("circle", { cx: x, cy: y, r: 15 * S, class: "mk-ring", "stroke-width": 3.5 * S }); },
+      region(id, cls = "mk-region") { add("polygon", { points: REGIONS[id].map(([la, ln]) => xy(la, ln).join(",")).join(" "), class: cls, "stroke-width": 2.5 * S }); },
+      letter(p, t) { const [x, y] = xy(p.lat, p.lng); add("circle", { cx: x, cy: y, r: 13 * S, class: "mk-letter", "stroke-width": 2 * S }); add("text", { x, y, class: "mk-letter-t", "font-size": 15 * S, "text-anchor": "middle", "dominant-baseline": "central" }, t); },
+      dot(lat, lng, cls) { const [x, y] = xy(lat, lng); add("circle", { cx: x, cy: y, r: 5 * S, class: cls, "stroke-width": 1.5 * S }); },
+      tolerance(p) { const [x, y] = xy(p.lat, p.lng); add("circle", { cx: x, cy: y, r: p.tol_km / kmPerUnit(p.lat), class: "mk-tol", "stroke-width": 1.5 * S }); },
+      line(a, b) { const [x1, y1] = xy(a.lat, a.lng), [x2, y2] = xy(b.lat, b.lng); add("line", { x1, y1, x2, y2, class: "mk-line", "stroke-width": 1.5 * S, "stroke-dasharray": `${5 * S} ${4 * S}` }); },
+      label(p, text) { const [x, y] = xy(p.lat, p.lng); add("text", { x: x + 8 * S, y, class: "mk-label", "font-size": 12 * S, "dominant-baseline": "central", "stroke-width": 3 * S }, text); }
+    };
+    return api;
+  };
 
   // Render the map for a quiz question: {map:{marker,style}} or {mapMarkers:[ids]}
   MK.questionMap = function (holder, q) {
     const ids = q.mapMarkers || [q.map.marker];
     const places = ids.map((id) => App.placeById[id]);
-    if (MK.leaflet()) {
-      const map = makeMap(holder, q.map && q.map.marker === "cyprus" ? [[33.5, 20], [41.5, 36]] : boundsFor(places));
-      if (q.mapMarkers) places.forEach((p, i) => L().marker([p.lat, p.lng], { icon: letterIcon("ABCD"[i]), keyboard: false }).addTo(map));
-      else addMark(map, places[0], q.map.style);
-    } else {
-      const box = fallbackPic(holder);
-      if (q.mapMarkers) places.forEach((p, i) => fbMark(box, p, "letter", "ABCD"[i]));
-      else fbMark(box, places[0], q.map.style === "circle" ? "circle" : "star", q.map.style === "circle" ? "" : "★");
+    const m = MK.draw(holder, MK.viewFor(places));
+    if (q.mapMarkers) places.forEach((p, i) => m.letter(p, "ABCD"[i]));
+    else {
+      const p = places[0];
+      if (p.region || q.map.style === "region") m.region(p.region || p.id);
+      else if (q.map.style === "circle") m.circle(p);
+      else m.star(p);
     }
   };
 
@@ -103,7 +87,7 @@
   App.route("map", function (root) {
     root.append(el(`<div class="page-head"><h1>Map Test</h1>
       <p>Tested places: Athens, Cyprus, Delos, Delphi, Greece, Mesopotamia, Mt. Olympus. Goal: 100% twice in a row. Current streak: <strong id="mapStreak">${App.state.streaks.map}</strong>.
-      ${MK.leaflet() ? "" : "<br><strong>Offline:</strong> using the blank Aegean map from the review slides."}</p></div>`));
+      Blank maps like the review slides — no labels, works offline.</p></div>`));
     const tabs = el(`<div class="row no-print" role="tablist" style="margin-bottom:12px">
       <button class="btn on" data-t="marked" type="button">What is marked? (a–d)</button>
       <button class="btn" data-t="click" type="button">Click to locate</button>
@@ -112,7 +96,7 @@
     root.append(tabs);
     const host = el(`<div></div>`);
     root.append(host);
-    const testedIds = App.places.filter((p) => p.tested && MK.canShow(p.id));
+    const testedIds = App.places.filter((p) => p.tested);
     const modes = { marked, click, letters, explore };
     App.$$("button", tabs).forEach((b) => (b.onclick = () => {
       App.$$("button", tabs).forEach((x) => x.classList.toggle("on", x === b));
@@ -128,7 +112,7 @@
       $("#mapStreak").textContent = App.state.streaks.map;
     }
     function marked(h) {
-      const hand = App.questions.filter((q) => q.map && MK.canShow(q.map.marker));
+      const hand = App.questions.filter((q) => q.map);
       const qs = shuffle(testedIds.map((p) => App.Gen.mapMarked(p)).filter(Boolean).concat(hand));
       App.runQuiz(h, qs, { mode: "learn", title: "Map", onDone: (r) => streak(r.correct === r.total && r.total === qs.length), restart: () => { h.innerHTML = ""; marked(h); } });
     }
@@ -138,7 +122,7 @@
     }
 
     function click(h) {
-      const order = shuffle(testedIds.filter((p) => MK.leaflet() || !p.region));
+      const order = shuffle(testedIds);
       let i = 0, right = 0;
       const card = el(`<div class="card"></div>`);
       h.append(card);
@@ -156,56 +140,42 @@
         }
         const p = order[i];
         card.append(el(`<div class="qhead"><span class="qcount">Place ${i + 1} / ${order.length}</span><span class="muted small">${right} correct</span></div>`));
-        card.append(el(`<div class="stem">Click on <b>${esc(p.name)}</b>.</div>`));
+        card.append(el(`<div class="stem">Click on <b>${esc(p.name)}</b>${p.region ? " (anywhere inside it)" : ""}.</div>`));
         const holder = el(`<div class="media"></div>`);
         card.append(holder);
         const fb = el(`<div></div>`);
         card.append(fb);
+        // Aegean places are asked on the Aegean close-up; Cyprus, Greece, Mesopotamia on the wide map
+        const m = MK.draw(holder, MK.viewFor([p]));
+        m.box.classList.add("clickable");
         let answered = false;
-        const judge = (lat, lng, show) => {
+        m.box.onclick = (e) => {
           if (answered) return;
           answered = true;
+          m.box.classList.remove("clickable");
+          const ll = m.toLatLng(e);
           let ok, msg;
           if (p.region) {
-            ok = MK.inPolygon(lat, lng, REGIONS[p.region]);
-            msg = ok ? "Inside the region." : "Outside the region.";
+            ok = MK.inPolygon(ll.lat, ll.lng, REGIONS[p.region]);
+            msg = ok ? "Inside the region." : "Outside the region (outlined in green).";
+            m.region(p.region, "mk-region-ok");
           } else {
-            const d = MK.km(p, { lat, lng });
+            const d = MK.km(p, ll);
             ok = d <= p.tol_km;
             msg = `${Math.round(d)} km from ${esc(p.name)} (tolerance ${p.tol_km} km).`;
+            m.tolerance(p);
+            m.line(ll, p);
+            m.dot(p.lat, p.lng, "mk-true");
           }
+          m.dot(ll.lat, ll.lng, "mk-guess");
           if (ok) right++;
           App.recordAnswer({ id: "auto:click:" + p.id, tags: ["maps", "auto"], q: `Locate ${esc(p.name)} on the map.`, opts: [esc(p.name), "—", "–", "−"], ans: 0, why: esc(p.note), map: { marker: p.id, style: "star" } }, ok);
-          show();
           fb.append(el(`<div class="feedback ${ok ? "good" : "bad"}"><strong>${ok ? "Correct." : "Missed."}</strong> ${msg} ${esc(p.name)}: ${esc(p.note)}.</div>`));
           const nb = el(`<button class="btn primary" type="button" style="margin-top:12px">Next →</button>`);
           nb.onclick = () => { i++; next(); };
           fb.append(nb);
           nb.focus();
         };
-        if (MK.leaflet()) {
-          const map = makeMap(holder, isAegean(p) ? AEGEAN : WIDE, { height: "420px" });
-          map.on("click", (e) => judge(e.latlng.lat, e.latlng.lng, () => {
-            L().circleMarker(e.latlng, { radius: 7, color: "#b3261e", fillOpacity: 1 }).addTo(map);
-            if (p.region) L().polygon(REGIONS[p.region], { color: "#3f7a25", weight: 3, fillOpacity: 0.2 }).addTo(map);
-            else {
-              L().circle([p.lat, p.lng], { radius: p.tol_km * 1000, color: "#3f7a25", weight: 2, fillOpacity: 0.15 }).addTo(map);
-              L().circleMarker([p.lat, p.lng], { radius: 7, color: "#3f7a25", fillOpacity: 1 }).addTo(map);
-              L().polyline([e.latlng, [p.lat, p.lng]], { color: "#1d1a17", dashArray: "4 4" }).addTo(map);
-            }
-          }));
-        } else {
-          const box = fallbackPic(holder);
-          box.onclick = (e) => {
-            const r = box.getBoundingClientRect();
-            const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
-            const ll = MK.fromFrac(fx, fy);
-            judge(ll.lat, ll.lng, () => {
-              box.append(el(`<span class="fb-marker guess" style="left:${fx * 100}%;top:${fy * 100}%"></span>`));
-              fbMark(box, p, "dot");
-            });
-          };
-        }
         App.onKey = (e) => { if (e.key === "Enter" && answered) { i++; next(); } };
       }
     }
@@ -213,27 +183,22 @@
     function explore(h) {
       const card = el(`<div class="card"></div>`);
       h.append(card);
-      const holder = el(`<div></div>`);
-      card.append(holder);
-      const tested = App.places.filter((p) => p.tested);
-      const info = (p) => {
-        const t = App.termById[p.id];
-        return `<strong>${esc(p.name)}</strong><br>${esc(p.note)}${t && t.more.length ? "<br><em>" + t.more.map(esc).join("<br>") + "</em>" : ""}${t && t.image ? `<br><img src="${App.imgSrc(t.image)}" alt="${esc(p.name)}" style="max-width:180px;margin-top:6px">` : ""}`;
-      };
-      if (MK.leaflet()) {
-        const map = makeMap(holder, WIDE, { height: "480px" });
-        App.places.filter((p) => !p.tested && !["egypt", "anatolia", "italy", "persia"].includes(p.id)).forEach((p) =>
-          L().circleMarker([p.lat, p.lng], { radius: 4, color: "#6b5f53", fillOpacity: 0.8 }).bindPopup(`${esc(p.name)} <span style="color:#888">(not tested)</span>`).addTo(map));
-        tested.forEach((p) => {
-          if (p.region) L().polygon(REGIONS[p.region], { color: "#C8643B", weight: 2, fillOpacity: 0.12 }).bindPopup(info(p)).addTo(map);
-          else L().marker([p.lat, p.lng]).bindPopup(info(p)).bindTooltip(p.name, { permanent: true, direction: "right" }).addTo(map);
-        });
-      } else {
-        const box = fallbackPic(holder);
-        tested.filter(onFallback).forEach((p) => fbMark(box, p, "dot"));
-      }
+      const aeg = testedIds.filter((p) => inView(MAPS.aegean, p));
+      card.append(el(`<h3>The Aegean</h3>`));
+      const m1 = MK.draw(card, "aegean");
+      App.places.filter((p) => !p.tested && inView(MAPS.aegean, p)).forEach((p) => { m1.dot(p.lat, p.lng, "mk-other"); m1.label(p, p.name); });
+      aeg.forEach((p) => { m1.dot(p.lat, p.lng, "mk-true"); m1.label(p, p.name); });
+      card.append(el(`<p class="small muted" style="margin-top:6px">Green = tested · grey = distractors used in questions.</p>`));
+      card.append(el(`<h3 style="margin-top:16px">Greece to Mesopotamia</h3>`));
+      const m2 = MK.draw(card, "wide");
+      m2.region("greece", "mk-region-ok");
+      m2.region("mesopotamia", "mk-region-ok");
+      testedIds.forEach((p) => { m2.dot(p.lat, p.lng, "mk-true"); if (!inView(MAPS.aegean, p) || p.region) m2.label(p, p.name); });
       const list = el(`<table style="margin-top:12px"><thead><tr><th>Place</th><th>Why it matters</th></tr></thead><tbody></tbody></table>`);
-      tested.forEach((p) => $("tbody", list).append(el(`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.note)}</td></tr>`)));
+      testedIds.forEach((p) => {
+        const t = App.termById[p.id];
+        $("tbody", list).append(el(`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.note)}${t && t.more.length ? `<div class="small muted">${t.more.map(esc).join(" · ")}</div>` : ""}</td></tr>`));
+      });
       card.append(list);
       card.append(el(`<p class="small muted" style="margin-top:8px">Labeled review-slide map:</p>`));
       card.append(el(`<img src="assets/slide-images/map-aegean-labeled.gif" alt="Labeled map of the Aegean from the review slides" style="max-width:100%;border-radius:8px">`));

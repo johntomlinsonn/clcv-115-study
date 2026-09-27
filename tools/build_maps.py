@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Generate unlabeled SVG maps (assets/maps/*.svg) from Natural Earth land polygons.
+
+Source: world-atlas land-10m.json (Natural Earth, public domain), e.g. `npm pack world-atlas@2`.
+Usage:  python3 tools/build_maps.py path/to/land-10m.json
+
+Projection is plain equirectangular inside each view's bounds, so the site can place
+markers with x = (lng - west) / (east - west) * W and y = (north - lat) / (north - south) * H.
+The same bounds are written to data/maps.js.
+"""
+import json
+import math
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+VIEWS = {
+    # id: (west, east, south, north, width px)
+    "aegean": (19.3, 28.7, 34.6, 42.0, 900),
+    "wide": (11.0, 50.0, 27.5, 44.5, 1000),
+}
+# Rough courses of the Tigris and Euphrates (lat, lng) — drawn on the wide map only
+RIVERS = {
+    "euphrates": [(38.8, 38.8), (37.9, 38.3), (37.0, 38.1), (36.0, 38.3), (35.4, 40.1), (34.4, 41.0), (33.4, 43.3),
+                  (32.5, 44.4), (31.3, 45.9), (31.0, 47.4), (30.0, 48.5)],
+    "tigris": [(38.4, 40.0), (37.9, 40.2), (37.3, 42.4), (36.3, 43.1), (35.0, 43.4), (33.3, 44.4), (32.5, 45.8),
+               (31.0, 47.4)],
+}
+
+
+def decode(topo):
+    """Decode TopoJSON arcs (quantized, delta-encoded) to lists of [lng, lat]."""
+    sx, sy = topo["transform"]["scale"]
+    tx, ty = topo["transform"]["translate"]
+    arcs = []
+    for arc in topo["arcs"]:
+        x = y = 0
+        pts = []
+        for dx, dy in arc:
+            x += dx
+            y += dy
+            pts.append((x * sx + tx, y * sy + ty))
+        arcs.append(pts)
+
+    def ring(idx):
+        out = []
+        for i in idx:
+            a = arcs[i] if i >= 0 else list(reversed(arcs[~i]))
+            out.extend(a if not out else a[1:])
+        return out
+
+    polys = []
+    for geom in topo["objects"]["land"]["geometries"]:
+        shapes = geom["arcs"] if geom["type"] == "MultiPolygon" else [geom["arcs"]]
+        for poly in shapes:
+            polys.append([ring(r) for r in poly])
+    return polys
+
+
+def clip(ring, w, e, s, n):
+    """Sutherland–Hodgman clip of a ring to the lng/lat rectangle."""
+    def edge(pts, inside, cross):
+        out = []
+        for i, cur in enumerate(pts):
+            prev = pts[i - 1]
+            if inside(cur):
+                if not inside(prev):
+                    out.append(cross(prev, cur))
+                out.append(cur)
+            elif inside(prev):
+                out.append(cross(prev, cur))
+        return out
+
+    def at_x(x):
+        return lambda a, b: (x, a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]))
+
+    def at_y(y):
+        return lambda a, b: (a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]), y)
+
+    pts = ring
+    for inside, cross in [(lambda p: p[0] >= w, at_x(w)), (lambda p: p[0] <= e, at_x(e)),
+                          (lambda p: p[1] >= s, at_y(s)), (lambda p: p[1] <= n, at_y(n))]:
+        if not pts:
+            break
+        pts = edge(pts, inside, cross)
+    return pts
+
+
+def build(polys, vid):
+    w, e, s, n, W = VIEWS[vid]
+    mid = math.radians((s + n) / 2)
+    H = round(W * (n - s) / ((e - w) * math.cos(mid)))
+    px = lambda lng, lat: ((lng - w) / (e - w) * W, (n - lat) / (n - s) * H)
+    paths = []
+    for poly in polys:
+        d = []
+        for ring in poly:
+            c = clip(ring, w, e, s, n)
+            if len(c) < 3:
+                continue
+            pts = [px(*p) for p in c]
+            # drop points closer than 0.6px to the previous one
+            keep = [pts[0]]
+            for p in pts[1:]:
+                if abs(p[0] - keep[-1][0]) + abs(p[1] - keep[-1][1]) > 0.6:
+                    keep.append(p)
+            if len(keep) < 3:
+                continue
+            d.append("M" + "L".join(f"{x:.1f},{y:.1f}" for x, y in keep) + "Z")
+        if d:
+            paths.append("".join(d))
+    rivers = ""
+    if vid == "wide":
+        for pts in RIVERS.values():
+            xy = [px(lng, lat) for lat, lng in pts]
+            rivers += f'<path d="M{"L".join(f"{x:.1f},{y:.1f}" for x, y in xy)}" fill="none" stroke="#5b8fc7" stroke-width="2.2" stroke-linejoin="round"/>'
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">'
+           f'<rect width="{W}" height="{H}" fill="#a9d3f0"/>'
+           f'<g fill="#f6efdf" stroke="#1d3a5c" stroke-width="0.7" stroke-linejoin="round">'
+           + "".join(f'<path d="{p}"/>' for p in paths) + f"</g>{rivers}</svg>")
+    out = ROOT / "assets" / "maps" / f"{vid}.svg"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(svg)
+    print(f"{out.relative_to(ROOT)}: {W}x{H}, {len(svg) // 1024} KB")
+    return {"file": f"assets/maps/{vid}.svg", "w": W, "h": H, "west": w, "east": e, "south": s, "north": n}
+
+
+if __name__ == "__main__":
+    topo = json.loads(Path(sys.argv[1]).read_text())
+    polys = decode(topo)
+    views = {vid: build(polys, vid) for vid in VIEWS}
+    js = "// Generated by tools/build_maps.py — unlabeled equirectangular maps and their bounds.\nwindow.DATA_MAPS = " + json.dumps(views, indent=1) + ";\n"
+    (ROOT / "data" / "maps.js").write_text(js)
+    print("wrote data/maps.js")

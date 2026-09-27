@@ -23,11 +23,3 @@ window.DATA_REGIONS = {
   greece: [[41.8, 20.0], [41.4, 22.6], [41.5, 24.5], [40.9, 26.3], [39.5, 26.0], [38.2, 25.6], [36.3, 26.4], [35.0, 24.0], [36.2, 22.4], [36.4, 21.6], [38.3, 20.6], [39.6, 19.9]],
   mesopotamia: [[37.2, 38.5], [37.3, 42.8], [35.5, 44.8], [33.0, 46.5], [31.0, 48.5], [29.9, 48.4], [30.6, 46.2], [32.3, 44.0], [33.8, 42.0], [35.8, 39.2]]
 };
-
-// Offline fallback: blank Aegean map from the review slides, calibrated linearly
-// (x = px from left, y = px from top of the 713×697 image).
-window.DATA_FALLBACK_MAP = {
-  file: "assets/slide-images/map-aegean-blank.gif", w: 713, h: 697,
-  lng0: 23.6, x0: 335, pxPerLng: 77.8,
-  lat0: 35.6, y0: 630, pxPerLat: 99
-};

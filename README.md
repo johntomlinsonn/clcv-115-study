@@ -23,7 +23,7 @@ Keyboard: `1–4`/`a–d` answer · `Enter` next · `F` flag · `←/→` naviga
 
 ## Notes
 - Progress lives in `localStorage` (`clcv115_v1`); use **Export/Import** in the footer to move it between devices. The site still works if storage is blocked.
-- The map uses Leaflet + label-free CARTO tiles when online; offline it falls back to the blank Aegean map from the review slides (Cyprus and Mesopotamia need the online map).
+- Maps are static, unlabeled SVGs generated from Natural Earth coastlines (`python3 tools/build_maps.py land-10m.json`, data from `npm pack world-atlas@2`): an Aegean close-up and a Greece→Mesopotamia view with the Tigris and Euphrates. No map API, no key, works offline.
 - `data/lectures.js` holds the lecture-slide content: 64 extra terms (own flashcard deck), extra facts merged into study-guide terms, and 98 lecture questions (tag `lecture`, ~40% of the mock's hand-written share). `data/notes.js` adds the Sept 8 / Sept 10 decks and the student's notes (Aug 25 – Sept 22): 45 more terms, 53 more questions, and per-lecture “From your notes” sections. No deck was provided for Sept 17 or the review week; those pages come from the notes.
 - `data/terms.js`, `data/stories.js` and `data/questions.js` are generated from the spec: `python3 tools/build_data.py`. `data/images.js` and `data/places.js` are hand-edited.
 - Self-test: open `index.html?selftest` and check the console (verifies all 170 questions and option shuffling).
