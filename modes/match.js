@@ -27,6 +27,8 @@
     place: { name: "Place ↔ meaning", pairs: App.places.filter((p) => p.tested).map((p) => [p.name, App.termById[p.id] ? App.termById[p.id].guide : p.note]) }
   };
 
+  Object.assign(SETS, window.DATA_GREEK_MATCH || {});
+
   App.route("match", function (root) {
     root.append(el(`<div class="page-head"><h1>Match Games</h1><p>Tap a tile on the left, then its partner on the right. 6 pairs per round — beat your time.</p></div>`));
     const bar = el(`<div class="row" style="margin-bottom:12px"></div>`);
