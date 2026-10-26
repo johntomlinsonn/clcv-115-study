@@ -104,7 +104,6 @@
     prog.append(el(`<div class="bar-row"><span>Cards mastered</span><div class="bar"><span style="width:${pct(mastered, cards.length)}%"></span></div><span>${mastered}/${cards.length}</span></div>`));
     if (!any) prog.append(el(`<p class="muted small">Nothing yet — start with “Read the slides”.</p>`));
     root.append(prog);
-    root.append(el(`<div class="headsup" style="margin-top:16px"><strong>Check this:</strong> the slides give 2015 as the year the brothers were kicked out of the house, but also say the house was used until 2018 and the chapter “shut down in 2018.” Know both dates as given, and ask your instructor which one they want. Also, the slides list the Illinois re-founders ("6 Founding Fathers") separately from the 5 original 1830s founders.</div>`));
   }
 
   // ---------------------------------------------------------------- learn

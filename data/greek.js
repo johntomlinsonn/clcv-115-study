@@ -96,7 +96,7 @@
     C("pa6", "adphi", "The 5 founders", "Samuel Eells, Lorenzo Latham, John Curtiss Underwood, Oliver Andrew Morse, Henry Lemuel Storrs", "Eells, Latham, Underwood, Morse, Storrs", "person"),
     C("pa7", "adphi", "Who designed the ADPhi emblem and symbols?", "Eells and Latham", "Eells and Latham", "person"),
     C("pa8", "adphi", "1878 fun fact", "Cornell's ADPhi chapter = first established residential chapter home of any fraternity", "Cornell", "school"),
-    C("pa9", "adphi", "Kirkland House", "Birthplace of ADPhi (Hamilton College)", "Birthplace of ADPhi", "text"),
+    C("pa9", "adphi", "Kirkland House", "Birthplace of ADPhi", "Birthplace of ADPhi", "text"),
     C("pa10", "adphi", "ADPhi was the first Greek-letter fraternity at (name any): Miami, NYU, Columbia, Yale, Amherst, Brown, Harvard, Hobart, Western Reserve, Bowdoin, Rochester, CCNY", "12 campuses (see Recall mode)", null, null),
     C("pa11", "adphi", "ADPhi was the SECOND fraternity at…", "Hamilton College, University of Alabama, McGill University", "Hamilton, Alabama, McGill", "school"),
     C("pi1", "illinois", "Pi Theta charter year", "1911", "1911", "year"),
@@ -157,7 +157,7 @@
     Q("adphi", "How many founders does ADPhi have (original)?", ["5", "6", "3", "12"], "Eells, Latham, Underwood, Morse, Storrs. (6 is the Illinois re-founding.)"),
     Q("adphi", "Who designed the ADPhi emblem and symbols?", ["Eells and Latham", "Underwood and Morse", "Storrs and Eells", "The Cornell chapter"], "Eells and Latham."),
     Q("adphi", "Which ADPhi chapter was the first established residential chapter home of any fraternity (1878)?", ["Cornell", "Hamilton", "Yale", "Illinois"], "Fun fact from the slide."),
-    Q("adphi", "Which is the “birthplace of ADPhi”?", ["Kirkland House", "Union Hall", "The University Club", "310 East John Street"], "Kirkland House at Hamilton College."),
+    Q("adphi", "Which is the “birthplace of ADPhi”?", ["Kirkland House", "Union Hall", "The University Club", "310 East John Street"], "Kirkland House — birthplace of ADPhi (per the slide)."),
     Q("adphi", "ADPhi was the SECOND Greek-letter fraternity at…", ["McGill University", "Harvard University", "Yale University", "Brown University"], "Second at Hamilton, Alabama, McGill; first at Harvard, Yale, Brown."),
     Q("adphi", "ADPhi was the FIRST Greek-letter fraternity at…", ["Columbia University", "University of Alabama", "Hamilton College", "McGill University"], "First on 12 campuses; second at Hamilton, Alabama, McGill."),
     Q("illinois", "Illinois's ADPhi chapter began as…", ["Pi Theta, chartered 1911", "Kappa Alpha Society", "Alpha Kappa Lambda", "Phi Beta Kappa, 1776"], "Chapter installed in Chicago Jan 13, 1912."),
@@ -186,7 +186,7 @@
       ["Phi Beta Kappa founded (William & Mary)", "1776"], ["PBK at Yale and Harvard", "1779"], ["Kappa Alpha Society founded (Union)", "1825"],
       ["Sigma Phi & Delta Phi founded (Union)", "1827"], ["PBK becomes national honor society", "1831"], ["ATO and KAO founded (after Civil War)", "1865"]] },
     adphi: { name: "ADPhi story", items: [
-      ["Eells finds the Phoenix and Philolpeuthian at Hamilton", "pre-1830"], ["Eells selects 2 men from each society", "1830"], ["Alpha Delta Phi founded", "1832"],
+      ["Eells finds the Phoenix and Philolpeuthian at Hamilton", "before 1830"], ["Eells selects 2 men from each society", "1830"], ["Alpha Delta Phi founded", "1832"],
       ["Cornell: first residential fraternity chapter home", "1878"], ["Pi Theta chartered", "1911"], ["Illinois Chapter installed in Chicago", "Jan 1912"]] },
     illinois: { name: "Illinois chapter timeline", items: [
       ["Pi Theta chartered", "1911"], ["Illinois Chapter installed", "1912"], ["Move to President's mansion", "1915"],
