@@ -26,7 +26,7 @@
     if (!storiesRead && !seenCards) return ["Start with Story Mode", "#/learn"];
     const div = stats.byCat.divinity || { learned: 0, total: 1 };
     if (div.learned < div.total && stats.due) return [`Flashcards: ${stats.due} cards due`, "#/flash/due"];
-    const weak = Object.entries(st.tagStats).filter(([t, s]) => t !== "auto" && !t.startsWith("greek") && s.c + s.w >= 5).map(([t, s]) => [t, s.c / (s.c + s.w)]).sort((a, b) => a[1] - b[1])[0];
+    const weak = Object.entries(st.tagStats).filter(([t, s]) => t !== "auto" && s.c + s.w >= 5).map(([t, s]) => [t, s.c / (s.c + s.w)]).sort((a, b) => a[1] - b[1])[0];
     if (weak && weak[1] < 0.8) return [`Drill your weakest topic: ${App.TAG_LABEL[weak[0]] || weak[0]} (${Math.round(weak[1] * 100)}%)`, "quiz:" + weak[0]];
     if (!st.mocks.length) return ["Take Mock Exam #1", "#/mock"];
     if (App.errorQuestions(false).length) return [`Fix ${App.errorQuestions(false).length} logged mistakes`, "#/errors"];
@@ -58,7 +58,6 @@
         <button class="btn primary" id="nextBtn" type="button" style="width:100%;margin-top:14px">Next best action → ${esc(actLabel)}</button>
       </div></div>`);
     root.append(hero);
-    root.append(el(`<a class="card" href="#/greek" style="display:block;text-decoration:none;color:inherit"><strong>New: Greek Life unit →</strong> <span class="muted">fraternity history &amp; ADPhi at Illinois — notes, flashcards, quiz, timeline builder, sort-it, fill-the-blank, free recall.</span></a>`));
     const tickCountdown = () => {
       const left = EXAM_END - Date.now();
       const c = $("#countdown");

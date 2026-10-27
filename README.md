@@ -17,13 +17,11 @@ A retrieval-practice study site for CLCV 115 Exam 1 (Powell, *Classical Myth* ch
 | `#/review` | The 40 review-lecture questions |
 | `#/mock` | 75 questions / 50:00, flags, navigator, auto-submit, history |
 | `#/errors` | Fix-My-Mistakes log + drill |
-| `#/greek` | **Greek Life unit** (fraternity history + ADPhi at Illinois, from the slide deck): slide notes, flashcards, quiz, plus Timeline Builder, Sort It, Fill the Blank and Free Recall. Four extra sets are added to `#/match`. |
 | `#/tree`, `#/match`, `#/cheatsheet`, `#/resources` | Family tree + quiz, match games, printable cheat sheet, links + Powell-index lookup drill |
 
 Keyboard: `1–4`/`a–d` answer · `Enter` next · `F` flag · `←/→` navigate (test mode) · `Space` flip card · `1–4` rate card.
 
 ## Notes
-- `data/greek.js` + `modes/greek.js` hold the Greek Life unit; edit the data file to add or correct facts (cards, questions, ordering/sorting sets, cloze sentences, recall lists).
 - Progress lives in `localStorage` (`clcv115_v1`); use **Export/Import** in the footer to move it between devices. The site still works if storage is blocked.
 - Maps are static, unlabeled SVGs generated from Natural Earth coastlines (`python3 tools/build_maps.py land-10m.json`, data from `npm pack world-atlas@2`): an Aegean close-up and a Greece→Mesopotamia view with the Tigris and Euphrates. No map API, no key, works offline.
 - `data/lectures.js` holds the lecture-slide content: 64 extra terms (own flashcard deck), extra facts merged into study-guide terms, and 98 lecture questions (tag `lecture`, ~40% of the mock's hand-written share). `data/notes.js` adds the Sept 8 / Sept 10 decks and the student's notes (Aug 25 – Sept 22): 45 more terms, 53 more questions, and per-lecture “From your notes” sections. No deck was provided for Sept 17 or the review week; those pages come from the notes.
