@@ -1,7 +1,11 @@
-/* CLCV 115 Exam 1 study site — core: utilities, state, router, question runner. */
+/* CLCV 115 study site — core: utilities, state, router, question runner.
+   One exam's data is loaded per page (see index.html); exam-specific settings come from window.DATA_CONFIG,
+   and anything not set there falls back to the original Exam 1 behavior. */
 (function () {
   "use strict";
   const App = (window.App = {});
+  App.exam = window.EXAM || "e1";
+  App.cfg = window.DATA_CONFIG || {};
 
   // ------------------------------------------------------------------ utils
   App.$ = (sel, el = document) => el.querySelector(sel);
@@ -30,7 +34,7 @@
     const m = Math.floor(sec / 60), s = sec % 60;
     return `${m}:${String(s).padStart(2, "0")}`;
   };
-  App.imgSrc = (file) => (file.startsWith("../") ? "assets/" + file.slice(3) : "assets/exam-images/" + file);
+  App.imgSrc = (file) => (file.startsWith("../") ? "assets/" + file.slice(3) : (App.cfg.imgDir || "assets/exam-images/") + file);
 
   // ------------------------------------------------------------------ data indexes
   // study-guide terms + lecture-slide terms; lecture facts are appended to matching terms
@@ -49,17 +53,18 @@
   App.placeById = Object.fromEntries(App.places.map((p) => [p.id, p]));
   App.stories = window.DATA_STORIES || [];
 
-  App.TAGS = ["review", "myth-theory", "succession", "mesopotamia", "prometheus", "flood", "zeus-hera", "apollo-artemis",
+  App.TAGS = App.cfg.tags || ["review", "myth-theory", "succession", "mesopotamia", "prometheus", "flood", "zeus-hera", "apollo-artemis",
     "hermes-pan", "aphrodite", "hephaestus-ares", "athena", "sources", "concepts", "images", "maps", "roman-names", "lecture"];
-  App.TAG_LABEL = {
+  App.TAG_LABEL = App.cfg.tagLabel || {
     review: "Review lecture", "myth-theory": "Myth theory", succession: "Creation & succession", mesopotamia: "Mesopotamia",
     prometheus: "Prometheus & Pandora", flood: "Flood", "zeus-hera": "Zeus, Hera & co.", "apollo-artemis": "Apollo & Artemis",
     "hermes-pan": "Hermes & Pan", aphrodite: "Aphrodite", "hephaestus-ares": "Hephaestus & Ares", athena: "Athena",
     sources: "Source texts", concepts: "Concepts", images: "Images", maps: "Maps", "roman-names": "Roman names", lecture: "Lecture slides", auto: "Auto-generated"
   };
-  App.CLUSTER_TAG = { c1: "myth-theory", c2: "succession", c3: "mesopotamia", c4: "prometheus", c5: "zeus-hera",
+  App.CLUSTER_TAG = App.cfg.clusterTag || { c1: "myth-theory", c2: "succession", c3: "mesopotamia", c4: "prometheus", c5: "zeus-hera",
     c6: "apollo-artemis", c7: "hermes-pan", c8: "aphrodite", c9: "athena" };
   App.termTag = (t) => {
+    if (App.cfg.termTag) return App.cfg.termTag(t);
     if (t.cat === "source") return "sources";
     if (t.cat === "place") return "maps";
     if (["hephaestus", "ares", "thetis"].includes(t.id)) return "hephaestus-ares";
@@ -69,7 +74,7 @@
   };
 
   // ------------------------------------------------------------------ state (localStorage, fail-safe)
-  const KEY = "clcv115_v1";
+  const KEY = App.cfg.storageKey || "clcv115_v1";
   App.storageOK = true;
   function defaults() {
     return {
@@ -467,7 +472,7 @@
       const blob = new Blob([JSON.stringify(App.state, null, 1)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "clcv115-progress.json";
+      a.download = App.exam === "e1" ? "clcv115-progress.json" : `clcv115-${App.exam}-progress.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
@@ -487,13 +492,34 @@
       e.target.value = "";
     };
     App.$("#resetBtn").onclick = () => {
-      if (confirm("Erase all progress (cards, mistakes, mock history)?")) { App.resetState(); render(); }
+      if (confirm(`Erase all ${App.cfg.title || "Exam 1"} progress (cards, mistakes, mock history)?`)) { App.resetState(); render(); }
     };
     App.save();
     if (!App.storageOK) App.$("#storageNote").textContent = "Browser storage is off — progress won't persist (use Export).";
   }
 
+  // ------------------------------------------------------------------ exam switcher + picker
+  App.EXAMS = [
+    { id: "e1", n: 1, name: "Exam 1", what: "Powell ch. 1–9 · creation, the Olympians, Mesopotamia", when: "Sept 24–27, 2026", note: "Done — keep it for reviewing before the final." },
+    { id: "e2", n: 2, name: "Exam 2", what: "Powell ch. 10–14, 16–18 · Demeter, Dionysus, the Underworld, Gilgamesh, Perseus, Thebes, Theseus, Crete", when: "Oct 29 – Nov 1, 2026", note: "75 questions · 50 minutes · CBTF" }
+  ];
+  App.route("exams", function (root) {
+    root.append(App.el(`<div class="page-head"><h1>Which exam are you studying for?</h1>
+      <p>Each exam has its own flashcards, quizzes, picture and map tests, mock exam and saved progress. Switch any time with the Exam 1 / Exam 2 buttons in the top bar.</p></div>`));
+    const grid = App.el(`<div class="exam-pick"></div>`);
+    App.EXAMS.forEach((x) => grid.append(App.el(`<a class="card exam-card" href="?exam=${x.n}#/home">
+      <h2>${x.name}</h2><p>${App.esc(x.what)}</p><p class="small muted">${App.esc(x.when)} · ${App.esc(x.note)}</p>
+      <span class="btn ${x.id === "e2" ? "primary" : ""}">Study ${x.name} →</span></a>`)));
+    root.append(grid);
+  });
+
   App.start = function () {
+    App.$$(".exam-switch a").forEach((a) => a.classList.toggle("on", !window.EXAM_PICK && a.dataset.exam === App.exam));
+    const be = App.$("#brandExam");
+    if (be) be.textContent = window.EXAM_PICK ? "Study" : App.cfg.title || "Exam 1";
+    if (!window.EXAM_PICK) document.title = `CLCV 115 ${App.cfg.title || "Exam 1"} Study`;
+    // first visit with no exam chosen: show the picker instead of the Exam 1 home page
+    if (window.EXAM_PICK && /^(#\/?(home)?)?$/.test(location.hash)) history.replaceState(null, "", "#/exams");
     wireFooter();
     window.addEventListener("hashchange", render);
     render();

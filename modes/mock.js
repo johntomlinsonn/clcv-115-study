@@ -15,35 +15,39 @@
   }
   App.drawMock = function () {
     const G = App.Gen, canMap = (q) => App.MapKit.canShow(q.map.marker);
-    const hand = App.questions.filter((q) => !q.img && !q.file && !q.map);
-    const handImg = App.questions.filter((q) => q.img || q.file);
-    const handMap = App.questions.filter((q) => q.map && canMap(q));
+    // nomock = ambiguous items (answer not confirmed by the slides or Powell): learning modes only
+    const pool = App.questions.filter((q) => !q.nomock);
+    const hand = pool.filter((q) => !q.img && !q.file && !q.map);
+    const handImg = pool.filter((q) => q.img || q.file);
+    const handMap = pool.filter((q) => q.map && canMap(q));
 
-    const nHand = Math.round(N * 0.35), nImg = Math.round(N * 0.15), nMap = Math.round(N * 0.05);
+    const mix = Object.assign({ hand: 0.35, img: 0.15, map: 0.05, lecture: 0.4 }, App.cfg.mockMix);
+    const nHand = Math.round(N * mix.hand), nImg = Math.round(N * mix.img), nMap = Math.round(N * mix.map);
     // ~60% study-guide/review questions, ~40% lecture-slide questions, each balanced by topic
     const group = (qs) => {
       const g = {};
-      qs.forEach((q) => { const t = q.tags.find((x) => x !== "review" && x !== "lecture") || "review"; (g[t] = g[t] || []).push(q); });
+      const meta = App.cfg.metaTags || ["review", "lecture"];
+      qs.forEach((q) => { const t = q.tags.find((x) => !meta.includes(x)) || q.tags[0]; (g[t] = g[t] || []).push(q); });
       return g;
     };
-    const nLecture = Math.round(nHand * 0.4);
+    const nLecture = Math.round(nHand * mix.lecture);
     const picked = balanced(group(hand.filter((q) => !q.lec)), nHand - nLecture).concat(balanced(group(hand.filter((q) => q.lec)), nLecture));
 
     const imgHand = sample(handImg, Math.ceil(nImg / 2));
     const usedImgs = new Set(imgHand.map((q) => q.img));
     const imgGen = shuffle(App.images.filter((i) => !usedImgs.has(i.id))).slice(0, nImg - imgHand.length).map((im) => G.pictureQ(im));
 
-    const mapHand = sample(handMap, Math.min(2, handMap.length));
+    const mapHand = sample(handMap, Math.min(mix.mapHand || 2, handMap.length));
     const usedPlaces = new Set(mapHand.map((q) => q.map.marker));
     const mapGen = shuffle(App.places.filter((p) => p.tested && !usedPlaces.has(p.id) && App.MapKit.canShow(p.id)))
       .slice(0, nMap - mapHand.length).map((p) => G.mapMarked(p)).filter(Boolean);
 
     const rest = N - picked.length - imgHand.length - imgGen.length - mapHand.length - mapGen.length;
     const termGroups = {};
-    App.terms.filter((t) => !t.extra || t.cat !== "source").forEach((t) => { const k = App.termTag(t); (termGroups[k] = termGroups[k] || []).push(t); });
+    App.terms.filter((t) => (!t.extra || t.cat !== "source") && t.cat !== "crq").forEach((t) => { const k = App.termTag(t); (termGroups[k] = termGroups[k] || []).push(t); });
     const autoTerms = balanced(termGroups, rest);
     const auto = G.fromTerms(autoTerms);
-    while (auto.length < rest) auto.push(G.roman());
+    while (auto.length < rest) auto.push(G.filler());
 
     return shuffle(picked.concat(imgHand, imgGen, mapHand, mapGen, auto)).slice(0, N);
   };
@@ -51,7 +55,7 @@
   App.route("mock", function (root) {
     const mocks = App.state.mocks;
     root.append(el(`<div class="page-head"><h1>Mock Exam</h1>
-      <p><strong>75 questions · 50:00</strong> — the real CBTF format (≈ 40 s per question). Mix: ~35% hand-written (review lecture, study guide, lecture slides), ~15% images, ~5% maps, the rest generated from every study-guide term.
+      <p><strong>75 questions · 50:00</strong> — the real CBTF format (≈ 40 s per question). Mix: ${App.cfg.mockText || "~35% hand-written (review lecture, study guide, lecture slides), ~15% images, ~5% maps, the rest generated from every study-guide term."}
       Flag and come back; the exam auto-submits at 0:00. Target ≥ 95% before you go.</p></div>`));
     const card = el(`<div class="card stack">
       <div class="row"><button class="btn primary" type="button" id="startMock">Start mock exam</button>

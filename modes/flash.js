@@ -3,7 +3,10 @@
   "use strict";
   const { $, el, esc, shuffle } = App;
   const INTERVAL = { 1: 1, 2: 2, 3: 4 }; // box → review every Nth round; box 4 = mastered
-  const CLUSTER_NAMES = Object.fromEntries(App.stories.map((s) => [s.id, s.title]));
+  const STORY_IDS = new Set(App.stories.map((s) => s.id));
+  const storyLabel = (s) => s.label || s.id.toUpperCase();
+  const DESC = App.cfg.deckDesc || {};
+  const withRoman = App.cfg.roman !== false;
 
   // ------------------------------------------------------------------ card building
   function termBack(t, showTerm) {
@@ -15,11 +18,13 @@
     if (t.mnemonic) parts.push(`<div class="mnemonic">🧠 ${esc(t.mnemonic)}</div>`);
     if (t.headsup) parts.push(`<div class="headsup">${esc(t.headsup)}</div>`);
     if (t.image) parts.push(`<img class="thumb" src="${App.imgSrc(t.image)}" alt="${esc(t.term)}">`);
-    const rel = App.terms.filter((x) => x.cluster && x.cluster === t.cluster && x !== t && x.cat !== "source").slice(0, 6);
-    if (t.cluster) parts.push(`<div class="small" style="margin-top:8px">Related: ${rel.map((r) => esc(r.term)).join(" · ")} — <a href="#/learn/${t.cluster}" target="_blank" rel="noopener">story ${t.cluster.toUpperCase()}</a></div>`);
+    const rel = App.terms.filter((x) => x.cluster && x.cluster === t.cluster && x !== t && x.cat !== "source" && x.cat !== "crq").slice(0, 6);
+    if (t.cluster && t.cat !== "crq") parts.push(`<div class="small" style="margin-top:8px">Related: ${rel.map((r) => esc(r.term)).join(" · ")} — <a href="#/learn/${t.cluster}" target="_blank" rel="noopener">story ${t.cluster.toUpperCase()}</a></div>`);
     return parts.join("");
   }
   function termCards(t) {
+    // reading questions: prompt → model answer only (the reverse direction makes no sense)
+    if (t.oneWay) return [{ id: `${t.id}:f`, term: t, label: t.cardLabel || "Question → answer", front: `<div class="front-text long">${esc(t.term)}</div>`, back: termBack(t, false), answer: [t.guide] }];
     const cards = [
       { id: `${t.id}:f`, term: t, label: "Term → meaning", front: `<div class="front-text">${esc(t.term)}</div>`, back: termBack(t, false), answer: [t.guide] },
       { id: `${t.id}:r`, term: t, label: "Meaning → term", front: `<div class="front-text long">${esc(t.guide)}</div>`, back: termBack(t, true), answer: variants(t.term) }
@@ -55,20 +60,21 @@
   const DECKS = [
     { id: "due", name: "Due now", desc: "Leitner: everything due across all decks" },
     { id: "all", name: "All", desc: "every card" },
-    { id: "divinity", name: "Divinities", desc: "gods, Titans, monsters" },
-    { id: "mortal", name: "Mortals", desc: "Actaeon → Sibyl" },
-    { id: "concept", name: "Concepts", desc: "aegis → xenia" },
-    { id: "place", name: "Places", desc: "the 7 map places" },
-    { id: "source", name: "Sources", desc: "texts & authors" },
-    { id: "lecture", name: "Lecture slides", desc: "terms from the Aug 27–Sept 15 decks" },
-    { id: "images", name: "Images", desc: "the 14 tested images" },
-    { id: "roman", name: "Roman names", desc: "Zeus → Jupiter…" },
-    ...App.stories.map((s) => ({ id: s.id, name: s.id.toUpperCase() + " · " + s.title.split("(")[0].trim(), desc: "story cluster" })),
+    ...(App.terms.some((t) => t.cat === "crq") ? [{ id: "crq", name: "Reading Questions", desc: DESC.crq || "the course reading questions" }] : []),
+    { id: "divinity", name: "Divinities", desc: DESC.divinity || "gods, Titans, monsters" },
+    { id: "mortal", name: "Mortals", desc: DESC.mortal || "Actaeon → Sibyl" },
+    { id: "concept", name: "Concepts", desc: DESC.concept || "aegis → xenia" },
+    { id: "place", name: "Places", desc: DESC.place || "the 7 map places" },
+    { id: "source", name: "Sources", desc: DESC.source || "texts & authors" },
+    { id: "lecture", name: "Lecture slides", desc: DESC.lecture || "terms from the Aug 27–Sept 15 decks" },
+    { id: "images", name: "Images", desc: DESC.images || "the 14 tested images" },
+    ...(withRoman ? [{ id: "roman", name: "Roman names", desc: "Zeus → Jupiter…" }] : []),
+    ...App.stories.map((s) => ({ id: s.id, name: storyLabel(s) + " · " + s.title.split("(")[0].trim(), desc: "story cluster" })),
     { id: "mistakes", name: "Fix My Mistakes", desc: "cards you've missed" },
     { id: "mastered", name: "Mastered review", desc: "box-4 cards, once before the mock" }
   ];
   App.allCards = function () {
-    return App.terms.flatMap(termCards).concat(imageCards(), romanCards());
+    return App.terms.flatMap(termCards).concat(imageCards(), withRoman ? romanCards() : []);
   };
   function deckCards(id) {
     const all = App.allCards();
@@ -81,7 +87,7 @@
       case "mistakes": return all.filter((c) => st[c.id] && st[c.id].wrong > 0 && st[c.id].box < 4);
       case "mastered": return all.filter((c) => st[c.id] && st[c.id].box === 4);
       default:
-        if (/^c\d$/.test(id)) return all.filter((c) => c.term && c.term.cluster === id && !c.id.startsWith("rom:"));
+        if (STORY_IDS.has(id)) return all.filter((c) => c.term && c.term.cluster === id && c.term.cat !== "crq" && !c.id.startsWith("rom:"));
         return all.filter((c) => c.term && c.term.cat === id && !c.id.startsWith("rom:"));
     }
   }

@@ -2,10 +2,11 @@
 (function () {
   "use strict";
   const { $, el, esc } = App;
-  // Sun Sept 27 2026, 11:59 PM Central Daylight Time (UTC−5)
-  const EXAM_END = Date.UTC(2026, 8, 28, 4, 59, 0);
+  const C = App.cfg;
+  // Exam 1: Sun Sept 27 2026, 11:59 PM Central Daylight Time (UTC−5)
+  const EXAM_END = C.examEnd || Date.UTC(2026, 8, 28, 4, 59, 0);
 
-  const PROTOCOL = [
+  const PROTOCOL = C.protocol || [
     ["30 min", "Story Mode — read the 9 cluster stories", "#/learn"],
     ["60 min", "Flashcards: Divinities until every card is box ≥ 2", "#/flash/divinity"],
     ["30 min", "Flashcards: Mortals + Concepts", "#/flash/mortal"],
@@ -17,7 +18,7 @@
     ["50 min", "Mock Exam #2 (new draw). Target ≥ 95%", "#/mock"],
     ["10 min", "“Final 10” sheet right before walking to the CBTF", "#/cheatsheet"]
   ];
-  const CAT_LABEL = { divinity: "Divinities", mortal: "Mortals", concept: "Concepts", place: "Places", source: "Sources", lecture: "Lecture slides", images: "Images", roman: "Roman names" };
+  const CAT_LABEL = { crq: "Reading Qs", divinity: "Divinities", mortal: "Mortals", concept: "Concepts", place: "Places", source: "Sources", lecture: "Lecture slides", images: "Images", roman: "Roman names" };
 
   function nextAction(stats) {
     const st = App.state;
@@ -44,9 +45,9 @@
 
     const hero = el(`<div class="hero">
       <div class="card">
-        <h1>CLCV 115 · Exam 1</h1>
-        <p class="muted">CBTF window Thu Sept 24 – Sun Sept 27, 2026 · 75 multiple-choice questions in 50 minutes (≈ 40 s each) · Powell ch. 1–9 + lectures.</p>
-        <div class="muted small">Time left in the exam window (closes Sun Sept 27, 11:59 PM CT)</div>
+        <h1>CLCV 115 · ${C.title || "Exam 1"}</h1>
+        <p class="muted">${C.homeSub || "CBTF window Thu Sept 24 – Sun Sept 27, 2026 · 75 multiple-choice questions in 50 minutes (≈ 40 s each) · Powell ch. 1–9 + lectures."}</p>
+        <div class="muted small">${C.countdownLabel || "Time left in the exam window (closes Sun Sept 27, 11:59 PM CT)"}</div>
         <div class="countdown" id="countdown">—</div>
         <label class="big-check ${st.settings.cbtf ? "done" : ""}" style="margin-top:12px"><input type="checkbox" id="cbtf" ${st.settings.cbtf ? "checked" : ""}><span>Did you book your CBTF slot?<br><span class="small muted">PrairieTest · bring your i-card</span></span></label>
       </div>
@@ -93,17 +94,20 @@
     });
     root.append(prog);
 
-    const proto = el(`<div class="card"><h2>Study protocol (1–2 days)</h2>
-      <p class="small muted">Retrieval practice + spacing + interleaving. Tick blocks off as you go.</p>
+    const proto = el(`<div class="card"><h2>${C.protocolTitle || "Study protocol (1–2 days)"}</h2>
+      <p class="small muted">${C.protocolSub || "Retrieval practice + spacing + interleaving. Tick blocks off as you go."}</p>
       <table class="protocol"><thead><tr><th></th><th>Block</th><th>Time</th><th>Mode</th></tr></thead><tbody></tbody></table>
-      <label class="row" style="margin-top:10px"><input type="checkbox" id="canvasChk" ${st.settings.canvas ? "checked" : ""}> Also: retook every Canvas quiz from weeks 1–5</label></div>`);
+      <label class="row" style="margin-top:10px"><input type="checkbox" id="canvasChk" ${st.settings.canvas ? "checked" : ""}> Also: ${C.canvasHome || "retook every Canvas quiz from weeks 1–5"}</label></div>`);
+    let block = 0;
     PROTOCOL.forEach(([time, what, href], i) => {
-      const tr = el(`<tr><td><input type="checkbox" aria-label="Block ${i + 1} done" ${st.settings.protocol[i] ? "checked" : ""}></td><td>${i === 6 ? "—" : i < 6 ? i + 1 : i}</td><td>${time}</td><td>${href ? `<a href="${href}">${esc(what)}</a>` : esc(what)}</td></tr>`);
+      const num = time === "break" ? "—" : ++block;
+      const tr = el(`<tr><td><input type="checkbox" aria-label="Block ${i + 1} done" ${st.settings.protocol[i] ? "checked" : ""}></td><td>${num}</td><td>${time}</td><td>${href ? `<a href="${href}">${esc(what)}</a>` : esc(what)}</td></tr>`);
       $("input", tr).onchange = (e) => { st.settings.protocol[i] = e.target.checked; App.save(); };
       $("tbody", proto).append(tr);
     });
     $("#canvasChk", proto).onchange = (e) => { st.settings.canvas = e.target.checked; App.save(); };
     root.append(proto);
+    if (C.homeExtra) root.append(el(C.homeExtra));
     root.append(el(`<div class="card sleep"><strong>Your professor's last slide: <em>get eight hours of sleep.</em></strong> Memory consolidation happens during sleep — a night between study blocks is part of the plan, not a break from it.</div>`));
   });
 
@@ -111,6 +115,7 @@
   App.route("learn", function (root, args) {
     const stories = App.stories;
     let i = Math.max(0, stories.findIndex((s) => s.id === args[0]));
+    const lab = (s) => s.label || s.id.toUpperCase();
     root.append(el(`<div class="page-head"><h1>Story Mode</h1><p>Terms are learned in story clusters, not alphabetically. Read one cluster, then answer its 3-question check right away.</p></div>`));
     const nav = el(`<div class="story-nav"></div>`);
     root.append(nav);
@@ -118,7 +123,7 @@
     root.append(host);
     stories.forEach((s, k) => {
       const read = (App.state.settings.storiesRead || {})[s.id];
-      const b = el(`<button class="chip" type="button">${s.id.toUpperCase()}${read ? " ✓" : ""}</button>`);
+      const b = el(`<button class="chip" type="button">${lab(s)}${read ? " ✓" : ""}</button>`);
       b.onclick = () => { i = k; draw(); };
       nav.append(b);
     });
@@ -128,10 +133,10 @@
       App.$$(".chip", nav).forEach((c, k) => c.classList.toggle("on", k === i));
       host.innerHTML = "";
       App.onKey = null;
-      const card = el(`<div class="card story"><div class="muted small">Cluster ${i + 1} of ${stories.length}</div><h2>${esc(s.id.toUpperCase())}. ${esc(s.title)}</h2>${s.html}</div>`);
+      const card = el(`<div class="card story"><div class="muted small">Cluster ${i + 1} of ${stories.length}</div><h2>${esc(lab(s))}. ${esc(s.title)}</h2>${s.html}</div>`);
       s.headsup.forEach((h) => card.append(el(`<div class="headsup">${esc(h)}</div>`)));
-      const terms = App.terms.filter((t) => t.cluster === s.id);
-      card.append(el(`<p class="small muted" style="margin-top:12px">Study-guide terms in this cluster: ${terms.map((t) => esc(t.term)).join(" · ")}. <a href="#/flash/${s.id}">Flashcards for ${s.id.toUpperCase()} →</a></p>`));
+      const terms = App.terms.filter((t) => t.cluster === s.id && t.cat !== "crq");
+      card.append(el(`<p class="small muted" style="margin-top:12px">Study-guide terms in this cluster: ${terms.map((t) => esc(t.term)).join(" · ")}. <a href="#/flash/${s.id}">Flashcards for ${lab(s)} →</a></p>`));
       host.append(card);
       const checkBox = el(`<div></div>`);
       const bar = el(`<div class="spread" style="margin-bottom:16px">
@@ -144,11 +149,11 @@
       $("[data-c]", bar).onclick = () => {
         bar.querySelector("[data-c]").disabled = true;
         App.runQuiz(checkBox, s.check.map((id) => App.qById[id]).filter(Boolean), {
-          mode: "learn", title: s.id.toUpperCase() + " check",
+          mode: "learn", title: lab(s) + " check",
           onDone: () => {
             const r = (App.state.settings.storiesRead = App.state.settings.storiesRead || {});
             r[s.id] = true; App.save();
-            App.$$(".chip", nav)[i].textContent = s.id.toUpperCase() + " ✓";
+            App.$$(".chip", nav)[i].textContent = lab(s) + " ✓";
           }
         });
         checkBox.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -171,6 +176,7 @@
   App.route("cheatsheet", function (root) {
     root.append(el(`<div class="spread page-head"><div><h1>Cheat Sheet</h1><p>One page for the walk to the CBTF — for studying only, never inside the exam.</p></div>
       <button class="btn no-print" type="button" onclick="window.print()">Print</button></div>`));
+    if (C.cheat) return cheatFromConfig(root, C.cheat);
     root.append(el(`<div class="card final10"><h2>The Final 10</h2><ol>
       <li>Parents of the Olympians = <b>Cronus &amp; Rhea</b>.</li>
       <li>Hundred-handers <b>hurl boulders</b>; Cyclopes <b>forge thunderbolts</b>.</li>
@@ -218,10 +224,28 @@
     root.append(hu);
   });
 
+  // Cheat sheet built from an exam's config: Final 10, attribute table, mnemonics, map places, extras, heads-ups.
+  function cheatFromConfig(root, ch) {
+    root.append(el(`<div class="card final10"><h2>The Final 10</h2><ol>${ch.final10.map((x) => `<li>${x}</li>`).join("")}</ol></div>`));
+    const two = el(`<div class="two-col"><div class="card"><h2>${C.attrTitle || "Attribute → god"}</h2><table><tbody></tbody></table></div><div class="card"><h2>Mnemonics</h2><ul class="mn"></ul></div></div>`);
+    (window.DATA_ATTRS || []).forEach(([a, g]) => $("tbody", two).append(el(`<tr><td>${esc(a)}</td><td><strong>${esc(g)}</strong></td></tr>`)));
+    ch.mnemonics.forEach((m) => $(".mn", two).append(el(`<li>${m}</li>`)));
+    root.append(two);
+    const maps = el(`<div class="two-col"><div class="card"><h2>Map places</h2><table><tbody></tbody></table></div>
+      <div class="card"><h2>${esc(ch.mapTitle || "Map")}</h2><img src="${ch.mapImg}" alt="${esc(ch.mapAlt || "Map")}" style="width:100%"><p class="small muted">${ch.mapCaption || ""}</p></div></div>`);
+    App.places.filter((p) => p.tested).forEach((p) => $("tbody", maps).append(el(`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.note)}</td></tr>`)));
+    root.append(maps);
+    (ch.extras || []).forEach((html) => root.append(el(html)));
+    const hu = el(`<div class="card"><h2>Heads-up: where sources disagree</h2><ul></ul></div>`);
+    App.terms.filter((t) => t.headsup).forEach((t) => $("ul", hu).append(el(`<li><strong>${esc(t.term)}:</strong> ${esc(t.headsup)}</li>`)));
+    root.append(hu);
+  }
+
   // ------------------------------------------------------------------ #/resources
   App.route("resources", function (root) {
     root.append(el(`<div class="page-head"><h1>Resources</h1><p>External links open in a new tab.</p></div>`));
-    root.append(el(`<div class="card"><h2>Watch &amp; practice</h2><ul>
+    if (C.resourcesHTML) root.append(el(C.resourcesHTML));
+    else root.append(el(`<div class="card"><h2>Watch &amp; practice</h2><ul>
       <li><a href="https://www.youtube.com/playlist?list=PLEb6sGT7oD8G8nPbyvObaZUNdfV6kitZQ" target="_blank" rel="noopener">Crash Course World Mythology playlist</a> — start with <a href="https://thecrashcourse.com/courses/creation-from-the-void-crash-course-world-mythology-2/" target="_blank" rel="noopener">#2 Creation from the Void</a></li>
       <li>Quizlet sets (other schools, same textbook — skip terms not on the guide):
         <a href="https://quizlet.com/411889980/classical-myth-powell-ch-1-9-flash-cards/" target="_blank" rel="noopener">Powell ch. 1–9</a> ·
@@ -230,6 +254,7 @@
       <li><a href="https://www.theoi.com" target="_blank" rel="noopener">Theoi Greek Mythology</a> — encyclopedia + ancient art per god</li>
       <li><a href="https://cbtf.illinois.edu/students" target="_blank" rel="noopener">CBTF student page / PrairieTest</a></li></ul>
       <label class="row"><input type="checkbox" id="canvasR" ${App.state.settings.canvas ? "checked" : ""}> Retook all Canvas quizzes (weeks 1–5)</label></div>`));
+    if (C.resourcesHTML) root.lastElementChild.append(el(`<label class="row"><input type="checkbox" id="canvasR" ${App.state.settings.canvas ? "checked" : ""}> ${C.canvasText}</label>`));
     $("#canvasR").onchange = (e) => { App.state.settings.canvas = e.target.checked; App.save(); };
 
     // Index-lookup drill: the only help file at the CBTF is Powell's index.
@@ -276,7 +301,7 @@
     root.append(el(`<div class="page-head"><h1>Lecture Notes</h1>
       <p>Everything from the lecture slide decks, condensed. Each lecture ends with its in-class questions and a quick check.
       Lecture-only questions are also mixed into Quiz and Mock Exam (topic “Lecture slides”) and the terms have their own flashcard deck.</p>
-      <p class="small muted">Sources: slide decks for Aug 27, Sept 1, 3, 8, 10, 15 and your own notes for every lecture from Aug 25 to Sept 22 (Sept 17 and the review are from your notes only). “Check this” boxes flag places where your notes differ from the slides or study guide.</p></div>`));
+      <p class="small muted">${C.lecturesNote || "Sources: slide decks for Aug 27, Sept 1, 3, 8, 10, 15 and your own notes for every lecture from Aug 25 to Sept 22 (Sept 17 and the review are from your notes only). “Check this” boxes flag places where your notes differ from the slides or study guide."}</p></div>`));
     const nav = el(`<div class="story-nav"></div>`);
     L.forEach((l, k) => {
       const b = el(`<button class="chip" type="button">${esc(l.date)}</button>`);
@@ -292,7 +317,7 @@
       App.$$(".chip", nav).forEach((c, k) => c.classList.toggle("on", k === i));
       host.innerHTML = "";
       App.onKey = null;
-      const card = el(`<div class="card story"><div class="muted small">${esc(l.date)} · ${esc(l.powell)}${l.notesOnly ? " · from your notes (no slide deck)" : ""}</div><h2>${esc(l.title)}</h2></div>`);
+      const card = el(`<div class="card story"><div class="muted small">${esc(l.date)} · ${esc(l.powell)}${l.notesOnly ? ` · ${l.noDeckNote || "from your notes (no slide deck)"}` : ""}</div><h2>${esc(l.title)}</h2></div>`);
       l.sections.forEach(([h, items]) => {
         card.append(el(`<h3 style="margin-top:14px">${esc(h)}</h3>`));
         card.append(el(`<ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul>`));

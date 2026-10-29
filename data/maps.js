@@ -17,5 +17,14 @@ window.DATA_MAPS = {
   "east": 50.0,
   "south": 27.5,
   "north": 44.5
+ },
+ "attica": {
+  "file": "assets/maps/attica.svg",
+  "w": 900,
+  "h": 828,
+  "west": 22.3,
+  "east": 24.3,
+  "south": 37.25,
+  "north": 38.7
  }
 };

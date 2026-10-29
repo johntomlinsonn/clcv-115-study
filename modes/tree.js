@@ -4,7 +4,7 @@
   const { $, el, esc, shuffle, sample } = App;
   // node: [name, note?, groups?]  group: [unionLabel, [nodes]]
   const N = (name, note, groups) => ({ name, note: note || "", groups: groups || [] });
-  const TREE = [
+  const TREE = App.cfg.tree ? App.cfg.tree(N) : [
     N("Chaos", "the gap/void — first"),
     N("Tartarus", "pit beneath the earth", [["+ Gaea", [N("Typhoeus", "100 snake heads; defeated by Zeus")]]]),
     N("Eros", "primordial Love"),
@@ -41,7 +41,7 @@
   ];
   const allNodes = [];
   (function walk(ns) { ns.forEach((n) => { allNodes.push(n); n.groups.forEach((g) => walk(g[1])); }); })(TREE);
-  const quizzable = allNodes.filter((n) => !/\+/.test(n.name) && n.name !== "Titans");
+  const quizzable = allNodes.filter((n) => !/\+/.test(n.name) && n.name !== "Titans" && !n.root);
 
   function render(nodes, blank, openAll) {
     const ul = el(`<ul></ul>`);
@@ -68,7 +68,7 @@
 
   App.route("tree", function (root) {
     root.append(el(`<div class="page-head"><h1>Family Tree</h1>
-      <p>Hesiod organizes variant myths through genealogies. Tap a name to expand/collapse. Leto is a Titaness, daughter of the Titans Coeus and Phoebe.</p></div>`));
+      <p>${App.cfg.treeIntro || "Hesiod organizes variant myths through genealogies. Tap a name to expand/collapse. Leto is a Titaness, daughter of the Titans Coeus and Phoebe."}</p></div>`));
     const bar = el(`<div class="row" style="margin-bottom:12px"><button class="btn" data-open type="button">Expand all</button><button class="btn" data-close type="button">Collapse</button><button class="btn primary" data-quiz type="button">Quiz: missing name</button></div>`);
     root.append(bar);
     const box = el(`<div class="card tree"></div>`);

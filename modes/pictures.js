@@ -6,7 +6,7 @@
 
   App.route("pictures", function (root) {
     root.append(el(`<div class="page-head"><h1>Picture Quiz</h1>
-      <p>Only the 14 study-guide images are tested — iconography only (who, doing what, identifying objects, which story), <em>not</em> date/painter/medium.
+      <p>Only the ${App.cfg.imagesTested || 14} study-guide images are tested — iconography only (who, doing what, identifying objects, which story), <em>not</em> date/painter/medium.
       Goal: 100% twice in a row on the Mixed round. Current streak: <strong id="picStreak">${App.state.streaks.pictures}</strong>.</p></div>`));
     const tabs = el(`<div class="row" role="tablist" style="margin-bottom:12px">
       <button class="btn on" data-t="mixed" type="button">Mixed (all formats)</button>
@@ -87,13 +87,13 @@
       grid.append(c);
     });
     host.append(grid);
-    const tbl = el(`<div class="card"><h2>Attribute → god</h2><table><tbody></tbody></table>
+    const tbl = el(`<div class="card"><h2>${App.cfg.attrTitle || "Attribute → god"}</h2><table><tbody></tbody></table>
       <p class="small muted" style="margin-top:8px">Transfer practice (needs internet) — same iconography on other vases:
-      <a href="https://commons.wikimedia.org/wiki/Category:Hephaestus_in_ancient_Greek_pottery" target="_blank" rel="noopener">Hephaestus</a> ·
+      ${App.cfg.transferLinks || `<a href="https://commons.wikimedia.org/wiki/Category:Hephaestus_in_ancient_Greek_pottery" target="_blank" rel="noopener">Hephaestus</a> ·
       <a href="https://commons.wikimedia.org/wiki/Category:Apollo_in_ancient_Greek_pottery" target="_blank" rel="noopener">Apollo</a> ·
       <a href="https://commons.wikimedia.org/wiki/Category:Athena_in_ancient_Greek_pottery" target="_blank" rel="noopener">Athena</a> ·
       <a href="https://commons.wikimedia.org/wiki/Category:Hermes_in_ancient_Greek_pottery" target="_blank" rel="noopener">Hermes</a> ·
-      <a href="https://commons.wikimedia.org/wiki/Category:Aphrodite_in_a_shell" target="_blank" rel="noopener">Aphrodite in a shell</a></p></div>`);
+      <a href="https://commons.wikimedia.org/wiki/Category:Aphrodite_in_a_shell" target="_blank" rel="noopener">Aphrodite in a shell</a>`}</p></div>`);
     (window.DATA_ATTRS || []).forEach(([a, g]) => $("tbody", tbl).append(el(`<tr><td>${esc(a)}</td><td><strong>${esc(g)}</strong></td></tr>`)));
     host.append(tbl);
   }

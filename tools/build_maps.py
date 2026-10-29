@@ -18,6 +18,8 @@ VIEWS = {
     # id: (west, east, south, north, width px)
     "aegean": (19.3, 28.7, 34.6, 42.0, 900),
     "wide": (11.0, 50.0, 27.5, 44.5, 1000),
+    # Exam 2 close-up: Athens, Eleusis, Thebes, Corinth, Megara, the Argive plain
+    "attica": (22.3, 24.3, 37.25, 38.7, 900),
 }
 # Rough courses of the Tigris and Euphrates (lat, lng) — drawn on the wide map only
 RIVERS = {

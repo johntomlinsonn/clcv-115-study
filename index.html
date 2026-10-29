@@ -3,8 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CLCV 115 Exam 1 Study</title>
-<meta name="description" content="Retrieval-practice study site for CLCV 115 Exam 1: flashcards, picture quiz, map test, mock exam.">
+<title>CLCV 115 Study</title>
+<meta name="description" content="Retrieval-practice study site for CLCV 115 Exams 1 and 2: flashcards, picture quiz, map test, mock exam.">
+<script>
+/* Which exam? ?exam=1|2 in the URL wins, then the last choice; with neither, Exam 1 data loads behind the exam picker. */
+(function () {
+  var m = /[?&]exam=([12])\b/.exec(location.search), e = m ? m[1] : null, KEY = "clcv115_exam";
+  if (!e) { try { e = localStorage.getItem(KEY); } catch (x) { /* storage unavailable */ } }
+  if (e !== "1" && e !== "2") { window.EXAM_PICK = true; e = "1"; }
+  else { try { localStorage.setItem(KEY, e); } catch (x) { /* storage unavailable */ } }
+  window.EXAM = "e" + e;
+  var files = e === "2"
+    ? ["data/maps.js", "data/exam2/terms.js", "data/exam2/crq.js", "data/exam2/stories.js", "data/exam2/images.js", "data/exam2/places.js",
+       "data/exam2/questions.js", "data/exam2/questions-crq.js", "data/exam2/lectures.js", "data/exam2/config.js"]
+    : ["data/terms.js", "data/stories.js", "data/images.js", "data/places.js", "data/maps.js", "data/questions.js", "data/lectures.js", "data/notes.js"];
+  for (var i = 0; i < files.length; i++) document.write('<script src="' + files[i] + '"><\/script>');
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23C8643B'/%3E%3Cpath d='M18 44h28M22 44V24M32 44V24M42 44V24M16 24h32L32 14z' stroke='%231d1a17' stroke-width='4' fill='none'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +28,8 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="#/home">CLCV 115 <span>Exam 1</span></a>
+  <a class="brand" href="#/home">CLCV 115 <span id="brandExam">Exam 1</span></a>
+  <div class="exam-switch" role="group" aria-label="Choose exam"><a href="?exam=1#/home" data-exam="e1">Exam 1</a><a href="?exam=2#/home" data-exam="e2">Exam 2</a></div>
   <nav class="nav" id="nav">
     <a href="#/home">Home</a>
     <a href="#/learn">Stories</a>
@@ -44,14 +60,6 @@
   </div>
 </footer>
 
-<script src="data/terms.js"></script>
-<script src="data/stories.js"></script>
-<script src="data/images.js"></script>
-<script src="data/places.js"></script>
-<script src="data/maps.js"></script>
-<script src="data/questions.js"></script>
-<script src="data/lectures.js"></script>
-<script src="data/notes.js"></script>
 <script src="app.js"></script>
 <script src="modes/quiz.js"></script>
 <script src="modes/flash.js"></script>

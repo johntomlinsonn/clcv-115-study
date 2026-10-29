@@ -79,6 +79,14 @@ kbd { font: 600 .78rem/1 ui-monospace, monospace; background: var(--surface-2); 
 .nav a { color: #e8dcc4; text-decoration: none; padding: 14px 10px; white-space: nowrap; font-size: .9rem; border-bottom: 3px solid transparent; }
 .nav a:hover { color: #fff; }
 .nav a.active { color: #fff; border-bottom-color: var(--terracotta); }
+.exam-switch { display: flex; border: 1px solid #5a4e43; border-radius: 999px; overflow: hidden; flex: none; }
+.exam-switch a { color: #e8dcc4; text-decoration: none; font-size: .8rem; padding: 6px 10px; white-space: nowrap; min-height: 32px; display: flex; align-items: center; }
+.exam-switch a:hover { color: #fff; }
+.exam-switch a.on { background: var(--terracotta); color: #fff; font-weight: 600; }
+.exam-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.exam-card { display: block; text-decoration: none; color: var(--ink); }
+.exam-card:hover { outline: 2px solid var(--accent); }
+.exam-card .btn { margin-top: 8px; }
 main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 20px 16px 40px; outline: none; }
 .footer { border-top: 1px solid var(--line); padding: 16px; max-width: 980px; margin: 0 auto; width: 100%; font-size: .88rem; }
 .footer-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -265,3 +273,9 @@ th { font-family: var(--head); font-size: .85rem; }
   a { color: #000; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* phones: brand + exam switcher on the first row, nav scrolls on its own row */
+@media (max-width: 560px) {
+  .topbar { flex-wrap: wrap; row-gap: 0; padding-top: 8px; }
+  .topbar .exam-switch { margin-left: auto; }
+  .topbar .nav { order: 3; flex-basis: 100%; }
+}

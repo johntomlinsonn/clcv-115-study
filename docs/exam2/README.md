@@ -1,10 +1,11 @@
 # CLCV 115 — Exam 2 knowledge base & build plan
 
-Everything needed to add an **Exam 2** section to the study site, saved so nothing is lost between sessions. The site itself has **not** been changed yet.
+Everything behind the **Exam 2** section of the study site. **Status: built** — the site has an Exam 1 / Exam 2 switch; Exam 2 data lives in `data/exam2/`, its images in `assets/exam2/`.
 
-## Waiting on
-- [ ] **The student's last zip.** Do **not** write site code until it is attached. (Six zips are listed in `07-source-inventory.md`; the textbook zip did come through in the planning session. Confirm with the student what the last one contains — e.g. their own lecture notes, as Exam 1 had.)
-- [ ] Re-upload `6_Textbook_Ch10-14_and_16-18.zip` in the build session (the PDF isn't committed).
+## Notes from the build
+- Answers were checked against the Powell PDF (ch. 10–14, 16–18). Where Powell and the slides differ (e.g. Persephone spends a third of the year below; the Mysteries were held in the fall), the site shows Powell and a heads-up.
+- The student mentioned a final zip; only the six listed in `07-source-inventory.md` arrived. If more notes arrive, add them as lecture-page sections / questions.
+- `?` items from `03-lecture-questions-answer-key.md` are in the question bank with `nomock: true`.
 
 ## Exam facts
 - **Window:** Thu **Oct 29** – Sun **Nov 1, 2026**, at the CBTF (book on PrairieTest via cbtf.illinois.edu/students; bring i-card).

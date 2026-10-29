@@ -4,7 +4,8 @@
   const { $, el, esc, shuffle, sample, pick, uniq } = App;
   const G = (App.Gen = {});
 
-  const studyTerms = App.terms.filter((t) => t.cat !== "source" || !t.extra);
+  // reading-question cards (cat "crq") are recall prompts, not terms: never auto-quizzed
+  const studyTerms = App.terms.filter((t) => (t.cat !== "source" || !t.extra) && t.cat !== "crq");
 
   // Pick n distractor items: same cluster first (harder), then the rest of the pool.
   function distract(target, pool, n, key) {
@@ -28,20 +29,21 @@
   const who = (t) => (t.cat === "divinity" || t.cat === "mortal" ? "Who is" : "What is");
 
   G.termToDef = function (t) {
-    const pool = App.terms.filter((x) => x.cat === t.cat);
+    const pool = studyTerms.filter((x) => x.cat === t.cat);
     const ds = distract(t, pool, 3, (x) => x.guide);
     if (ds.length < 3) return null;
     return mcq(`auto:t2d:${t.id}`, [App.termTag(t), "auto"], `${who(t)} <b>${esc(t.term)}</b>?`, esc(t.guide), ds.map((d) => esc(d.guide)),
       `${esc(t.term)}: ${esc(t.guide)}.${t.more.length ? " " + esc(t.more[0]) + "." : ""}`);
   };
   G.defToTerm = function (t) {
-    const pool = App.terms.filter((x) => x.cat === t.cat);
+    const pool = studyTerms.filter((x) => x.cat === t.cat);
     const ds = distract(t, pool, 3, (x) => x.term);
     if (ds.length < 3) return null;
     return mcq(`auto:d2t:${t.id}`, [App.termTag(t), "auto"], `Which ${t.cat === "divinity" ? "figure" : t.cat === "mortal" ? "mortal" : t.cat === "place" ? "place" : t.cat === "source" ? "text" : "term"} is: “${esc(t.guide)}”?`,
       esc(t.term), ds.map((d) => esc(d.term)), `${esc(t.term)}: ${esc(t.guide)}.`);
   };
   const romanTerms = App.terms.filter((t) => t.roman && t.cat === "divinity" && !/\//.test(t.roman));
+  const useRoman = App.cfg.roman !== false && romanTerms.length >= 4;
   G.roman = function (t) {
     t = t || pick(romanTerms);
     const ds = distract(t, romanTerms, 3, (x) => x.roman);
@@ -96,8 +98,9 @@
 
   // ---- maps
   const tested = App.places.filter((p) => p.tested);
-  const pointPlaces = App.places.filter((p) => !p.region && ["egypt", "anatolia", "italy", "persia"].indexOf(p.id) < 0);
-  const regionLike = ["greece", "mesopotamia", "egypt", "anatolia", "italy", "persia"].map((id) => App.placeById[id]);
+  const areaIds = App.cfg.areaIds || ["greece", "mesopotamia", "egypt", "anatolia", "italy", "persia"];
+  const pointPlaces = App.places.filter((p) => !p.region && areaIds.indexOf(p.id) < 0);
+  const regionLike = areaIds.map((id) => App.placeById[id]).filter(Boolean);
   G.nearest = function (p, n) {
     const pool = p.region ? regionLike.filter((x) => x !== p) : pointPlaces.filter((x) => x !== p);
     return pool.map((x) => [x, App.MapKit.km(p, x)]).sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
@@ -109,7 +112,7 @@
     // nearest-first, but keep a little variety
     const ds = sample(G.nearest(p, 5), 3);
     const style = p.region ? "region" : pick(["star", "circle"]);
-    const noun = p.region ? "region" : p.id === "cyprus" || p.id === "delos" ? "island" : "place";
+    const noun = p.noun || (p.region ? "region" : p.id === "cyprus" || p.id === "delos" ? "island" : "place");
     return mcq(`auto:map:${p.id}`, ["maps", "auto"], `Identify the ${noun} marked ${style === "region" ? "(outlined)" : "with a " + style} on the map.`,
       esc(p.name), ds.map((d) => esc(d.name)), `${esc(p.name)}: ${esc(p.note)}.`, { map: { marker: p.id, style } });
   };
@@ -119,8 +122,8 @@
     if (!p || p.region) return null;
     // Distractor markers: near the target (harder) but far enough apart not to overlap on the map
     const MK = App.MapKit, view = MK.viewFor([p]);
-    const sep = view === "aegean" ? 70 : 350;
-    const pool = shuffle(G.nearest(p, view === "wide" ? 30 : 10).filter((x) => MK.canShow(x.id) && (view === "wide" || MK.viewFor([x]) === "aegean")));
+    const sep = { attica: 12, aegean: 70 }[view] || 350;
+    const pool = shuffle(G.nearest(p, { wide: 30, attica: 12 }[view] || 10).filter((x) => MK.canShow(x.id) && !x.region && (view === "wide" || MK.fits(view, x))));
     const chosen = [p];
     for (const x of pool) {
       if (chosen.length === 4) break;
@@ -144,9 +147,11 @@
     const r = Math.random();
     if (r < 0.6) return G.fromTerms([pick(studyTerms)])[0];
     if (r < 0.8) return G.pictureQ();
-    if (r < 0.9) return G.mapMarked() || G.roman();
+    if (r < 0.9 || !useRoman) return G.mapMarked() || G.fromTerms([pick(studyTerms)])[0];
     return G.roman();
   };
+  // filler for the mock exam: a Roman-name item (Exam 1) or another term item
+  G.filler = () => (useRoman ? G.roman() : G.fromTerms([pick(studyTerms)])[0]);
 
   // Build a pool for a set of tags (hand-written + generated), used by Quiz page.
   G.poolForTags = function (tags, includeAuto) {
@@ -162,7 +167,7 @@
       });
       if (want.has("images")) imgs.forEach((im) => { for (let i = 0; i < 3; i++) auto.push(G.pictureQ(im)); });
       if (want.has("maps")) tested.forEach((p) => { const a = G.mapMarked(p), b = G.placeMeaning(p); if (a) auto.push(a); if (b) auto.push(b); });
-      if (want.has("roman-names")) romanTerms.forEach((t) => auto.push(G.roman(t)));
+      if (want.has("roman-names") && useRoman) romanTerms.forEach((t) => auto.push(G.roman(t)));
     }
     // de-duplicate by id (generated ids are stable per term/format)
     const seen = new Set();
@@ -226,13 +231,15 @@
 
   // ------------------------------------------------------------------ #/review
   App.route("review", function (root) {
-    const review = App.questions.filter((q) => q.tags.includes("review"));
-    root.append(el(`<div class="page-head"><h1>Review-Lecture Questions</h1>
-      <p>All ${review.length} questions from the Sept 24 review slides. Canvas in-class quiz questions get recycled on the exam — also retake every Canvas quiz from weeks 1–5.</p></div>`));
+    const rcfg = App.cfg.review || {};
+    const rtags = rcfg.tags || ["review"];
+    const review = App.questions.filter((q) => q.tags.some((t) => rtags.includes(t)));
+    root.append(el(`<div class="page-head"><h1>${rcfg.title || "Review-Lecture Questions"}</h1>
+      <p>${rcfg.intro ? rcfg.intro(review.length) : `All ${review.length} questions from the Sept 24 review slides. Canvas in-class quiz questions get recycled on the exam — also retake every Canvas quiz from weeks 1–5.`}</p></div>`));
     const card = el(`<div class="card row">
       <button class="btn primary" data-a type="button">All ${review.length} in order (learning)</button>
       <button class="btn" data-b type="button">Shuffled, test mode</button>
-      <label class="row"><input type="checkbox" id="canvasDone" ${App.state.settings.canvas ? "checked" : ""}> Retook all Canvas quizzes (weeks 1–5)</label></div>`);
+      <label class="row"><input type="checkbox" id="canvasDone" ${App.state.settings.canvas ? "checked" : ""}> ${App.cfg.canvasText || "Retook all Canvas quizzes (weeks 1–5)"}</label></div>`);
     root.append(card);
     const host = el(`<div></div>`);
     root.append(host);

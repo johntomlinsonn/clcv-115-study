@@ -25,9 +25,15 @@
   // Every tested place fits on one of the two maps, so everything can always be shown.
   MK.canShow = (id) => !!App.placeById[id];
 
-  const inView = (v, p, margin = 0.3) => !p.region && p.lat > v.south + margin && p.lat < v.north - margin && p.lng > v.west + margin && p.lng < v.east - margin;
-  // Aegean close-up when every place fits on it; otherwise the wide map (Cyprus, Mesopotamia, regions)
-  MK.viewFor = (places) => (places.every((p) => inView(MAPS.aegean, p)) ? "aegean" : "wide");
+  const VIEWS = App.cfg.maps || ["aegean", "wide"];
+  const inPt = (v, lat, lng, margin) => lat > v.south + margin && lat < v.north - margin && lng > v.west + margin && lng < v.east - margin;
+  // Regions go on the wide map, unless the exam allows them on any map their outline fits (Exam 2: Crete, Argive plain)
+  const inView = (v, p, margin = 0.3) => (p.region
+    ? !!App.cfg.regionFit && REGIONS[p.region].every(([la, ln]) => inPt(v, la, ln, 0.05))
+    : inPt(v, p.lat, p.lng, margin));
+  MK.fits = (viewId, p) => inView(MAPS[viewId], p);
+  // the closest map on which every place fits (Exam 1: Aegean close-up, else the wide map)
+  MK.viewFor = (places) => VIEWS.find((id) => places.every((p) => inView(MAPS[id], p))) || VIEWS[VIEWS.length - 1];
 
   // Draw a map with an SVG overlay in the map's own pixel space.
   MK.draw = function (holder, viewId) {
@@ -86,7 +92,7 @@
   // ------------------------------------------------------------------ #/map
   App.route("map", function (root) {
     root.append(el(`<div class="page-head"><h1>Map Test</h1>
-      <p>Tested places: Athens, Cyprus, Delos, Delphi, Greece, Mesopotamia, Mt. Olympus. Goal: 100% twice in a row. Current streak: <strong id="mapStreak">${App.state.streaks.map}</strong>.
+      <p>Tested places: ${App.places.filter((p) => p.tested).map((p) => esc(p.name)).sort().join(", ")}. Goal: 100% twice in a row. Current streak: <strong id="mapStreak">${App.state.streaks.map}</strong>.
       Blank maps like the review slides — no labels, works offline.</p></div>`));
     const tabs = el(`<div class="row no-print" role="tablist" style="margin-bottom:12px">
       <button class="btn on" data-t="marked" type="button">What is marked? (a–d)</button>
@@ -181,6 +187,7 @@
     }
 
     function explore(h) {
+      if (App.cfg.maps) return exploreAll(h);
       const card = el(`<div class="card"></div>`);
       h.append(card);
       const aeg = testedIds.filter((p) => inView(MAPS.aegean, p));
@@ -202,6 +209,27 @@
       card.append(list);
       card.append(el(`<p class="small muted" style="margin-top:8px">Labeled review-slide map:</p>`));
       card.append(el(`<img src="assets/slide-images/map-aegean-labeled.gif" alt="Labeled map of the Aegean from the review slides" style="max-width:100%;border-radius:8px">`));
+    }
+    // Explore for exams with their own map list: every map, tested places labeled
+    function exploreAll(h) {
+      const card = el(`<div class="card"></div>`);
+      h.append(card);
+      VIEWS.forEach((id, k) => {
+        card.append(el(`<h3 ${k ? 'style="margin-top:16px"' : ""}>${esc((App.cfg.mapNames || {})[id] || id)}</h3>`));
+        const m = MK.draw(card, id);
+        const here = (p) => (p.region ? MK.fits(id, p) || id === VIEWS[VIEWS.length - 1] : inPt(MAPS[id], p.lat, p.lng, 0.05));
+        App.places.filter((p) => !p.tested && !p.region && here(p)).forEach((p) => { m.dot(p.lat, p.lng, "mk-other"); m.label(p, p.name); });
+        testedIds.filter((p) => p.region && here(p)).forEach((p) => m.region(p.region, "mk-region-ok"));
+        testedIds.filter((p) => !p.region && here(p)).forEach((p) => { m.dot(p.lat, p.lng, "mk-true"); m.label(p, p.name); });
+        testedIds.filter((p) => p.region && here(p) && p.lat).forEach((p) => m.label(p, p.name));
+      });
+      card.append(el(`<p class="small muted" style="margin-top:6px">Green = tested · grey = distractors used in questions.</p>`));
+      const list = el(`<table style="margin-top:12px"><thead><tr><th>Place</th><th>Why it matters</th></tr></thead><tbody></tbody></table>`);
+      testedIds.forEach((p) => {
+        const t = App.termById[p.id];
+        $("tbody", list).append(el(`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.note)}${t && t.more.length ? `<div class="small muted">${t.more.map(esc).join(" · ")}</div>` : ""}</td></tr>`));
+      });
+      card.append(list);
     }
   });
 })();

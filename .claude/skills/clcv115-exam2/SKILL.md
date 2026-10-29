@@ -8,7 +8,8 @@ description: Knowledge base and build plan for the CLCV 115 Exam 2 section of th
 All Exam-2 knowledge lives in `docs/exam2/` — read `docs/exam2/README.md` first, then `docs/exam2/00-website-plan.md`.
 
 ## Status
-- Planning is done; **site code has not been written**. The student asked that **no code be written until they attach their final zip**. Check `docs/exam2/README.md` → "Waiting on" before changing any site code; if that box isn't ticked and the student hasn't said to start, plan/document only.
+- **Built.** Exam 2 data: `data/exam2/` (terms, crq, stories, images, places, questions, questions-crq, lectures, config). Rebuild stories with `python3 tools/exam2/build_stories.py` after editing `docs/exam2/06-story-clusters.md`.
+- Test both exams after changes: `index.html?exam=1&selftest` and `?exam=2&selftest` (console), and keep Exam 1 output identical.
 - The Powell textbook PDF is **not** in the repo (copyright). Ask for `6_Textbook_Ch10-14_and_16-18.zip` again if a build needs it; the page map is in `docs/exam2/07-source-inventory.md`.
 
 ## Where things are

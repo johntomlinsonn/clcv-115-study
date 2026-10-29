@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const { $, el, esc, shuffle, sample } = App;
-  const SETS = {
+  const SETS = App.cfg.matchSets ? App.cfg.matchSets() : {
     roman: { name: "Greek ↔ Roman", pairs: [["Zeus", "Jupiter"], ["Hera", "Juno"], ["Poseidon", "Neptune"], ["Hades", "Pluto"], ["Hestia", "Vesta"],
       ["Athena", "Minerva"], ["Artemis", "Diana"], ["Aphrodite", "Venus"], ["Ares", "Mars"], ["Hephaestus", "Vulcan"], ["Hermes", "Mercury"],
       ["Eros", "Cupid"], ["Cronus", "Saturn"], ["Apollo", "Apollo (same)"]] },
@@ -40,7 +40,7 @@
     root.append(host);
     let timer = null;
     App.onCleanup(() => clearInterval(timer));
-    play("roman");
+    play(Object.keys(SETS)[0]);
 
     function play(key) {
       clearInterval(timer);
