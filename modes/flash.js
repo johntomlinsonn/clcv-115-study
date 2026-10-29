@@ -3,6 +3,7 @@
   "use strict";
   const { $, el, esc, shuffle } = App;
   const INTERVAL = { 1: 1, 2: 2, 3: 4 }; // box → review every Nth round; box 4 = mastered
+  const SESSION = 25; // cards per round — a round has to end for box 2/3 cards to come back on schedule
   const STORY_IDS = new Set(App.stories.map((s) => s.id));
   const storyLabel = (s) => s.label || s.id.toUpperCase();
   const DESC = App.cfg.deckDesc || {};
@@ -19,7 +20,8 @@
     if (t.headsup) parts.push(`<div class="headsup">${esc(t.headsup)}</div>`);
     if (t.image) parts.push(`<img class="thumb" src="${App.imgSrc(t.image)}" alt="${esc(t.term)}">`);
     const rel = App.terms.filter((x) => x.cluster && x.cluster === t.cluster && x !== t && x.cat !== "source" && x.cat !== "crq").slice(0, 6);
-    if (t.cluster && t.cat !== "crq") parts.push(`<div class="small" style="margin-top:8px">Related: ${rel.map((r) => esc(r.term)).join(" · ")} — <a href="#/learn/${t.cluster}" target="_blank" rel="noopener">story ${t.cluster.toUpperCase()}</a></div>`);
+    const story = App.stories.find((x) => x.id === t.cluster);
+    if (t.cluster && t.cat !== "crq") parts.push(`<div class="small related">Related: ${rel.map((r) => esc(r.term)).join(" · ")}${story ? ` — <a href="#/learn/${t.cluster}">story ${esc(storyLabel(story))}</a>` : ""}</div>`);
     return parts.join("");
   }
   function termCards(t) {
@@ -137,7 +139,7 @@
     const stats = App.cardStats();
     root.append(el(`<div class="page-head"><h1>Flashcards</h1>
       <p>Answer in your head <em>before</em> flipping (goal: under 5 s). Rate honestly: <strong>Again</strong> sends the card back to box 1.
-      Box 1 = every round · box 2 = every 2nd · box 3 = every 4th · box 4 = mastered. Round ${App.state.settings.round}.</p></div>`));
+      A round is up to ${SESSION} cards (reviews first, then new ones). Box 1 = every round · box 2 = every 2nd · box 3 = every 4th · box 4 = mastered. Round ${App.state.settings.round}.</p></div>`));
     const opts = el(`<div class="card row">
       <label class="row"><input type="checkbox" id="typeAns" ${App.state.settings.typeAnswer ? "checked" : ""}> Type the answer (deeper retrieval)</label>
       <label class="row"><input type="checkbox" id="factCards" ${App.state.settings.factCards ? "checked" : ""}> Add fact → who? cards</label>
@@ -158,19 +160,24 @@
   function session(root, deckId) {
     const deck = DECKS.find((d) => d.id === deckId) || DECKS[0];
     const cards = deckCards(deck.id);
-    let queue = deck.id === "mastered" || deck.id === "mistakes" ? shuffle(cards) : shuffle(cards.filter(isDue));
+    const pending = deck.id === "mastered" || deck.id === "mistakes" ? shuffle(cards) : shuffle(cards.filter(isDue));
+    // reviews of cards you've seen come before brand-new cards; one round = at most SESSION cards
+    const seenFirst = pending.filter((c) => App.state.cards[c.id]).concat(pending.filter((c) => !App.state.cards[c.id]));
+    let queue = seenFirst.slice(0, SESSION);
+    const later = seenFirst.length - queue.length;
     root.append(el(`<div class="spread page-head"><h1>${esc(deck.name)}</h1><a class="btn small" href="#/flash">← Decks</a></div>`));
     const wrap = el(`<div class="flash-wrap"></div>`);
     root.append(wrap);
     if (!cards.length) { wrap.append(el(`<div class="card"><p>No cards in this deck yet.</p><a class="btn" href="#/flash">Back to decks</a></div>`)); return; }
     if (!queue.length) {
       const c = el(`<div class="card"><p>Nothing due in <strong>${esc(deck.name)}</strong> this round. 🎉</p><div class="row"><button class="btn primary" type="button">Study all ${cards.length} anyway</button><a class="btn" href="#/quiz">Take a quiz instead</a></div></div>`);
-      $("button", c).onclick = () => { queue = shuffle(cards); c.remove(); show(); };
+      $("button", c).onclick = () => { queue = shuffle(cards); startLen = queue.length; c.remove(); show(); };
       wrap.append(c);
       return;
     }
     let seen = 0, flipped = false, t0 = 0, timerId = null, cur = null, again = 0;
-    const startLen = queue.length;
+    let startLen = queue.length;
+    App.onCleanup(() => clearInterval(timerId));
     show();
 
     function show() {
@@ -183,7 +190,8 @@
       const card = el(`<div class="card flashcard" tabindex="0" aria-live="polite">
         <span class="label">${esc(cur.label)} · box ${s ? s.box : "new"}</span><span class="timer">0.0s</span>
         <div class="face">${cur.front}</div></div>`);
-      wrap.append(el(`<div class="spread small muted" style="margin-bottom:6px"><span>${seen} done · ${queue.length + 1} left</span><span>avg recall ${avgRecall()}</span></div>`));
+      wrap.append(el(`<div class="spread small muted session-meta"><span>${seen} done · ${queue.length + 1} left this round${later ? ` (${later} more due after)` : ""}</span><span>avg recall ${avgRecall()}</span></div>`));
+      wrap.append(el(`<div class="pace session-bar" aria-hidden="true"><span style="width:${App.pct(seen, seen + queue.length + 1)}%"></span></div>`));
       wrap.append(card);
       const ctl = el(`<div></div>`);
       wrap.append(ctl);
@@ -193,7 +201,7 @@
         ctl.append(tb);
         setTimeout(() => $("input", tb).focus(), 30);
       }
-      const fb = el(`<button class="btn primary" type="button" style="width:100%;margin-top:10px">Show answer <kbd>Space</kbd></button>`);
+      const fb = el(`<button class="btn primary block" type="button">Show answer <kbd class="kbd-hint-inline">Space</kbd></button>`);
       fb.onclick = () => flip();
       ctl.append(fb);
       card.onclick = () => { if (!flipped) flip(); };
@@ -204,7 +212,6 @@
         tm.textContent = s.toFixed(1) + "s";
         tm.classList.toggle("slow", s > 5);
       }, 100);
-      App.onCleanup(() => clearInterval(timerId));
     }
     function avgRecall() {
       const r = App.state.settings.recall || [];
@@ -219,6 +226,7 @@
       void rec;
       const card = $(".flashcard", wrap);
       $(".face", card).innerHTML = cur.back;
+      card.classList.add("flipped");
       const ctl = card.nextElementSibling;
       ctl.innerHTML = "";
       let suggest = null;
@@ -229,10 +237,10 @@
         ctl.append(el(`<div class="feedback ${ok ? "good" : "bad"}">${ok ? "✓" : "✗"} ${Math.round(sim * 100)}% match — you typed “${esc(typed || "")}”</div>`));
       }
       const rate = el(`<div class="rate">
-        <button class="btn again" data-r="1" type="button">Again<small>box 1 · key 1</small></button>
-        <button class="btn" data-r="2" type="button">Hard<small>stay · key 2</small></button>
-        <button class="btn good" data-r="3" type="button">Good<small>+1 · key 3</small></button>
-        <button class="btn" data-r="4" type="button">Easy<small>+2 · key 4</small></button></div>`);
+        <button class="btn again" data-r="1" type="button">Again<small>box 1<span class="key"> · key 1</span></small></button>
+        <button class="btn" data-r="2" type="button">Hard<small>stay<span class="key"> · key 2</span></small></button>
+        <button class="btn good" data-r="3" type="button">Good<small>+1 box<span class="key"> · key 3</span></small></button>
+        <button class="btn" data-r="4" type="button">Easy<small>+2 boxes<span class="key"> · key 4</span></small></button></div>`);
       App.$$("button", rate).forEach((b) => {
         if (suggest && +b.dataset.r === suggest) b.classList.add("on");
         b.onclick = () => rateCard(+b.dataset.r);
@@ -264,7 +272,7 @@
       wrap.innerHTML = "";
       const c = el(`<div class="card"><h2>Round complete</h2><p>${startLen} cards · ${again} “Again” presses · avg recall ${avgRecall()}.</p>
         <p class="muted">Round counter is now ${App.state.settings.round}; box-2 and box-3 cards come back on their schedule.</p>
-        <div class="row"><a class="btn primary" href="#/flash/due">Next: due cards</a><a class="btn" href="#/flash">Decks</a><a class="btn" href="#/quiz">Mixed quiz</a></div></div>`);
+        <div class="row"><a class="btn primary" href="#/flash/${later ? esc(deck.id) : "due"}">${later ? `Next round (${Math.min(later, SESSION)} cards)` : "Next: due cards"}</a><a class="btn" href="#/flash">Decks</a><a class="btn" href="#/quiz">Mixed quiz</a></div></div>`);
       wrap.append(c);
     }
     App.onKey = (e) => {

@@ -79,7 +79,7 @@
       } else App.go(actHref);
     };
 
-    const prog = el(`<div class="two-col"><div class="card"><h2>Flashcard progress</h2><div class="small muted" style="margin-bottom:6px">olive = learned (box ≥ 2) · number = mastered (box 4)</div></div><div class="card"><h2>Quiz accuracy by topic</h2></div></div>`);
+    const prog = el(`<div class="two-col"><div class="card"><h2>Flashcard progress</h2><div class="small muted" style="margin-bottom:6px">bar = learned (box ≥ 2) · number = mastered (box 4)</div></div><div class="card"><h2>Quiz accuracy by topic</h2></div></div>`);
     Object.entries(CAT_LABEL).forEach(([k, label]) => {
       const s = stats.byCat[k];
       if (!s) return;

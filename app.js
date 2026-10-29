@@ -149,25 +149,42 @@
   App.onCleanup = (fn) => cleanups.push(fn);
   App.onKey = null;
 
+  // a running mock exam asks before you navigate away (and lose it)
+  App.leaveGuard = null;
+  let lastHash = location.hash;
   function render() {
+    if (App.leaveGuard) {
+      if (!confirm(App.leaveGuard)) { history.replaceState(null, "", lastHash || "#/home"); return; }
+    }
+    App.leaveGuard = null;
+    lastHash = location.hash;
+    document.body.classList.remove("in-session");
     cleanups.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
     cleanups = [];
     App.onKey = null;
     const hash = location.hash.replace(/^#\/?/, "") || "home";
     const [name, ...rest] = hash.split("/");
     const fn = App.routes[name] || App.routes.home;
-    App.$$("#nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#/" + (App.routes[name] ? name : "home")));
+    App.$$(".nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#/" + (App.routes[name] ? name : "home")));
     const root = App.$("#app");
     root.innerHTML = "";
+    document.body.dataset.route = App.routes[name] ? name : "home";
+    App.closeMenu && App.closeMenu();
     window.scrollTo(0, 0);
     fn(root, rest);
-    const active = App.$("#nav a.active");
-    if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest", inline: "nearest" });
+    App.$$(".tabbar [data-routes]").forEach((a) => a.classList.toggle("active", (a.dataset.routes || "").split(" ").includes(App.routes[name] ? name : "home")));
+    root.focus({ preventScroll: true });
   }
   App.go = (hash) => {
     if (location.hash === hash) render();
     else location.hash = hash;
   };
+  // a link to the page you're already on (e.g. "Quiz" mid-quiz) restarts that page instead of doing nothing
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest('a[href^="#/"]');
+    if (!a || e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || a.target) return;
+    if (a.getAttribute("href") === location.hash) { e.preventDefault(); render(); }
+  });
 
   document.addEventListener("keydown", (e) => {
     if (!App.onKey || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -234,6 +251,10 @@
     const mode = cfg.mode || "learn";
     const test = mode !== "learn";
     const pace = cfg.pace || 40;
+    if (!questions.length) {
+      root.append(App.el(`<div class="card empty"><p>No questions here yet.</p><a class="btn" href="#/quiz">Open the quiz builder</a></div>`));
+      return { finish() {} };
+    }
     const items = questions.map((q) => {
       const n = q.opts.length;
       const fixed = q.noShuffle || q.opts.some((o) => /\b(all|none) of the above\b/i.test(App.plain(o)));
@@ -244,8 +265,14 @@
     const deadline = cfg.timeLimit ? t0 + cfg.timeLimit * 1000 : null;
     let timer = null;
 
-    const wrap = App.el(`<div class="card quiz"></div>`);
+    const wrap = App.el(`<div class="card quiz ${mode === "mock" ? "mock" : ""}"></div>`);
     root.append(wrap);
+    // focus mode while answering: page intros collapse so the question sits at the top
+    document.body.classList.add("in-session");
+    if (mode === "mock") App.leaveGuard = "Leave the mock exam? Your answers so far will be lost.";
+    const onUnload = (e) => { if (mode === "mock" && !done) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", onUnload);
+    App.onCleanup(() => window.removeEventListener("beforeunload", onUnload));
 
     function elapsedQ() { return (performance.now() - qStart) / 1000; }
     function commitTime() { items[idx].time += elapsedQ(); qStart = performance.now(); }
@@ -279,10 +306,10 @@
         <span class="row">
           <span class="muted small pace-s"></span>
           ${deadline ? `<span class="clock" aria-live="off"></span>` : ""}
-          <button class="btn small flag ${it.flagged ? "flag-on" : ""}" type="button" title="Flag (F)">⚑ ${it.flagged ? "Flagged" : "Flag"}</button>
+          <button class="btn small flag ${it.flagged ? "flag-on" : ""}" type="button" title="Flag (F)" aria-pressed="${it.flagged}">⚑ ${it.flagged ? "Flagged" : "Flag"}</button>
         </span></div>`);
       wrap.append(head);
-      wrap.append(App.el(`<div class="pace" title="40-second pace"><span></span></div>`));
+      wrap.append(App.el(`<div class="pace" title="40-second pace" aria-hidden="true"><span></span></div>`));
       App.renderMedia(q, wrap);
       wrap.append(App.el(`<div class="stem">${q.q}</div>`));
       const optsEl = App.el(`<div class="opts ${q.optImgs ? "img-opts" : ""}"></div>`);
@@ -302,7 +329,7 @@
       wrap.append(optsEl);
       if (reveal) {
         const ok = it.answer === q.ans;
-        const fb = App.el(`<div class="feedback ${ok ? "good" : "bad"}" role="status"><strong>${ok ? "Correct." : "Not quite."}</strong> ${q.why || ""}</div>`);
+        const fb = App.el(`<div class="feedback ${ok ? "good" : "bad"}" role="status"><strong>${ok ? "✓ Correct." : "✗ Not quite."}</strong> ${q.why || ""}</div>`);
         if (q.img && App.imgById[q.img]) {
           const im = App.imgById[q.img];
           fb.append(App.el(`<div class="small" style="margin-top:6px"><strong>Image:</strong> ${App.esc(im.answer)} — clues: ${App.esc(im.clues.join("; "))}</div>`));
@@ -324,7 +351,7 @@
       } else {
         const quit = App.el(`<button class="btn small" type="button">End now</button>`);
         quit.onclick = () => finish(false);
-        const next = App.el(`<button class="btn primary" type="button" ${answered ? "" : "disabled"}>${idx === items.length - 1 ? "Finish" : "Next →"} </button>`);
+        const next = App.el(`<button class="btn primary" type="button" ${answered ? "" : "disabled"}>${idx === items.length - 1 ? "Finish" : "Next"}</button>`);
         next.onclick = () => (idx === items.length - 1 ? finish(false) : move(1));
         nav.append(quit, next);
       }
@@ -367,6 +394,8 @@
       commitTime();
       clearInterval(timer);
       App.onKey = null;
+      App.leaveGuard = null;
+      document.body.classList.remove("in-session");
       const used = (performance.now() - t0) / 1000;
       if (test) items.forEach((it) => { if (!it.recorded) App.recordAnswer(it.q, it.answer === it.q.ans); });
       const answeredItems = test ? items : items.filter((it) => it.answer !== null);
@@ -513,7 +542,25 @@
     root.append(grid);
   });
 
+  // phones/tablets: the sidebar is a sheet opened from the tab bar's "More"
+  function wireMenu() {
+    const menu = App.$("#menu"), scrim = App.$("#scrim"), btn = App.$("#menuBtn");
+    if (!menu || !btn) return;
+    const set = (open) => {
+      document.body.classList.toggle("menu-open", open);
+      scrim.hidden = !open;
+      btn.setAttribute("aria-expanded", open);
+      if (open) (App.$(".nav a.active", menu) || App.$(".nav a", menu)).focus();
+    };
+    App.closeMenu = () => { if (document.body.classList.contains("menu-open")) set(false); };
+    btn.onclick = () => set(!document.body.classList.contains("menu-open"));
+    App.$("#menuClose").onclick = () => { set(false); btn.focus(); };
+    scrim.onclick = () => set(false);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("menu-open")) { set(false); btn.focus(); } });
+  }
+
   App.start = function () {
+    wireMenu();
     App.$$(".exam-switch a").forEach((a) => a.classList.toggle("on", !window.EXAM_PICK && a.dataset.exam === App.exam));
     const be = App.$("#brandExam");
     if (be) be.textContent = window.EXAM_PICK ? "Study" : App.cfg.title || "Exam 1";

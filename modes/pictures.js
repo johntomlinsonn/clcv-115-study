@@ -8,7 +8,7 @@
     root.append(el(`<div class="page-head"><h1>Picture Quiz</h1>
       <p>Only the ${App.cfg.imagesTested || 14} study-guide images are tested — iconography only (who, doing what, identifying objects, which story), <em>not</em> date/painter/medium.
       Goal: 100% twice in a row on the Mixed round. Current streak: <strong id="picStreak">${App.state.streaks.pictures}</strong>.</p></div>`));
-    const tabs = el(`<div class="row" role="tablist" style="margin-bottom:12px">
+    const tabs = el(`<div class="modes" aria-label="Question format">
       <button class="btn on" data-t="mixed" type="button">Mixed (all formats)</button>
       <button class="btn" data-t="name" type="button">Name it</button>
       <button class="btn" data-t="clue" type="button">Which clue?</button>

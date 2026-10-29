@@ -42,6 +42,9 @@
   const allNodes = [];
   (function walk(ns) { ns.forEach((n) => { allNodes.push(n); n.groups.forEach((g) => walk(g[1])); }); })(TREE);
   const quizzable = allNodes.filter((n) => !/\+/.test(n.name) && n.name !== "Titans" && !n.root);
+  // names that appear twice in the tree (e.g. Eros, Maia) can't be the blank: either spot would be right
+  const twice = new Set(quizzable.map((n) => n.name).filter((x, i, a) => a.indexOf(x) !== i));
+  const askable = quizzable.filter((n) => !twice.has(n.name));
 
   function render(nodes, blank, openAll) {
     const ul = el(`<ul></ul>`);
@@ -72,7 +75,7 @@
     const bar = el(`<div class="row" style="margin-bottom:12px"><button class="btn" data-open type="button">Expand all</button><button class="btn" data-close type="button">Collapse</button><button class="btn primary" data-quiz type="button">Quiz: missing name</button></div>`);
     root.append(bar);
     const box = el(`<div class="card tree"></div>`);
-    const qbox = el(`<div></div>`);
+    const qbox = el(`<div class="tree-qbox"></div>`);
     root.append(qbox, box);
     const show = (openAll, blank) => { box.innerHTML = ""; box.append(render(TREE, blank, openAll)); };
     show(false);
@@ -81,13 +84,15 @@
     let score = 0, n = 0;
     $("[data-quiz]", bar).onclick = ask;
     function ask() {
-      const target = sample(quizzable, 1)[0];
+      const target = sample(askable, 1)[0];
       show(false, target);
-      const opts = shuffle([target.name, ...sample(quizzable.filter((x) => x !== target), 3).map((x) => x.name)]);
+      const others = App.uniq(quizzable.map((x) => x.name).filter((x) => x !== target.name));
+      const opts = shuffle([target.name, ...sample(others, 3)]);
       qbox.innerHTML = "";
-      const c = el(`<div class="card"><div class="stem">Which name belongs in the <span class="node blank">???</span> box?</div><div class="opts"></div><div class="fb"></div></div>`);
+      const c = el(`<div class="card tree-q"><div class="stem">Which name belongs in the <span class="node blank">???</span> box?</div><div class="opts"></div><div class="fb"></div></div>`);
       opts.forEach((o, i) => {
         const b = el(`<button class="opt" type="button"><span class="letter">${"abcd"[i]}</span><span>${esc(o)}</span></button>`);
+        b.dataset.name = o;
         b.onclick = () => answer(o, b);
         $(".opts", c).append(b);
       });
@@ -100,10 +105,10 @@
         done = true; n++;
         const ok = o === target.name;
         if (ok) score++;
-        App.$$(".opt", c).forEach((x) => { x.disabled = true; if (x.textContent.slice(1) === target.name) x.classList.add("correct"); });
+        App.$$(".opt", c).forEach((x) => { x.disabled = true; if (x.dataset.name === target.name) x.classList.add("correct"); });
         if (!ok) b.classList.add("wrong");
         $(".fb", c).append(el(`<div class="feedback ${ok ? "good" : "bad"}"><strong>${esc(target.name)}</strong>${target.note ? " — " + esc(target.note) : ""}. Score ${score}/${n}.</div>`));
-        const nx = el(`<button class="btn primary" type="button" style="margin-top:10px">Next →</button>`);
+        const nx = el(`<button class="btn primary" type="button">Next name</button>`);
         nx.onclick = ask;
         $(".fb", c).append(nx);
         const blank = $(".node.blank", box);

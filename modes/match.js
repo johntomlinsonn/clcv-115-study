@@ -29,7 +29,7 @@
 
   App.route("match", function (root) {
     root.append(el(`<div class="page-head"><h1>Match Games</h1><p>Tap a tile on the left, then its partner on the right. 6 pairs per round — beat your time.</p></div>`));
-    const bar = el(`<div class="row" style="margin-bottom:12px"></div>`);
+    const bar = el(`<div class="modes" aria-label="Match set"></div>`);
     Object.entries(SETS).forEach(([k, s], i) => {
       const b = el(`<button class="btn ${i === 0 ? "on" : ""}" type="button">${esc(s.name)}</button>`);
       b.onclick = () => { App.$$("button", bar).forEach((x) => x.classList.toggle("on", x === b)); play(k); };

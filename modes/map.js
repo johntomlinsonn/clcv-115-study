@@ -94,7 +94,7 @@
     root.append(el(`<div class="page-head"><h1>Map Test</h1>
       <p>Tested places: ${App.places.filter((p) => p.tested).map((p) => esc(p.name)).sort().join(", ")}. Goal: 100% twice in a row. Current streak: <strong id="mapStreak">${App.state.streaks.map}</strong>.
       Blank maps like the review slides — no labels, works offline.</p></div>`));
-    const tabs = el(`<div class="row no-print" role="tablist" style="margin-bottom:12px">
+    const tabs = el(`<div class="modes no-print" aria-label="Map format">
       <button class="btn on" data-t="marked" type="button">What is marked? (a–d)</button>
       <button class="btn" data-t="click" type="button">Click to locate</button>
       <button class="btn" data-t="letters" type="button">Place ↔ meaning</button>

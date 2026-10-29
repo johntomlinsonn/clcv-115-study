@@ -4,6 +4,8 @@ A retrieval-practice study site for CLCV 115. **Exam 1** (Powell, *Classical Myt
 
 **Open it:** double-click `index.html` (works from `file://`), or use the GitHub Pages deployment (`.github/workflows/pages.yml` deploys `main`). No build step.
 
+**Layout:** phones and tablets get a bottom tab bar (Home · Cards · Practice · Mock · More — "More" opens every section); desktops get a grouped sidebar. Light and dark mode follow the device. While you answer questions the page intro collapses, and a running mock exam asks before you navigate away. Design rules: `.claude/skills/clcv115-design/SKILL.md`.
+
 **Choosing an exam:** the first visit shows an exam picker; afterwards the **Exam 1 / Exam 2** switch in the top bar (or `index.html?exam=1` / `?exam=2`) changes exam. Each exam loads only its own data and keeps its own progress (`clcv115_v1` for Exam 1 — unchanged — and `clcv115_e2_v1` for Exam 2). Both use exactly the same modes below.
 
 ## Exam 2 content
@@ -19,7 +21,7 @@ A retrieval-practice study site for CLCV 115. **Exam 1** (Powell, *Classical Myt
 | `#/home` | Countdown to the end of the CBTF window, "CBTF booked?" checkbox, readiness %, progress, next best action, 1–2 day study protocol |
 | `#/learn` | Story Mode — the 9 story clusters, each with a 3-question check |
 | `#/lectures` | Lecture Notes for every lecture Aug 25 – Sept 22: slide decks (Aug 27, Sept 1, 3, 8, 10, 15) plus the student's own notes, in-class questions, quick checks and “Check this” corrections |
-| `#/flash` | Flashcards (term ↔ meaning, images, Roman names, optional fact cards) with Leitner boxes, recall timer, type-the-answer |
+| `#/flash` | Flashcards (term ↔ meaning, images, Roman names, optional fact cards) with Leitner boxes (rounds of up to 25 cards, reviews before new cards), recall timer, type-the-answer |
 | `#/pictures` | Picture Quiz: name it, which clue, label the object (pins), reverse, zoom challenge, study gallery |
 | `#/map` | Map Test: what is marked (★/◯), click to locate, place ↔ meaning, explore |
 | `#/quiz` | Topic quiz (hand-written + auto-generated), learning or test mode, 40 s pace bar |
