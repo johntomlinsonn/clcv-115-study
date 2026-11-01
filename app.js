@@ -560,6 +560,8 @@
   }
 
   App.start = function () {
+    // links to pages this exam doesn't have (e.g. Exam 2's crash course) are hidden
+    App.$$('.nav a[href^="#/"]').forEach((a) => { if (!App.routes[a.getAttribute("href").slice(2)]) a.remove(); });
     wireMenu();
     App.$$(".exam-switch a").forEach((a) => a.classList.toggle("on", !window.EXAM_PICK && a.dataset.exam === App.exam));
     const be = App.$("#brandExam");

@@ -19,6 +19,7 @@ A retrieval-practice study site for CLCV 115. **Exam 1** (Powell, *Classical Myt
 | Route | Mode |
 |---|---|
 | `#/home` | Countdown to the end of the CBTF window, "CBTF booked?" checkbox, readiness %, progress, next best action, 1–2 day study protocol |
+| `#/crash` | Exam 2 only: 30-minute crash course — big idea, story beats and every name with one line of context for each topic, story patterns, the 13 images and 10 places; an 8-question test per section and a 40-question final (`data/exam2/crash.js`, `modes/crash.js`) |
 | `#/learn` | Story Mode — the 9 story clusters, each with a 3-question check |
 | `#/lectures` | Lecture Notes for every lecture Aug 25 – Sept 22: slide decks (Aug 27, Sept 1, 3, 8, 10, 15) plus the student's own notes, in-class questions, quick checks and “Check this” corrections |
 | `#/flash` | Flashcards (term ↔ meaning, images, Roman names, optional fact cards) with Leitner boxes (rounds of up to 25 cards, reviews before new cards), recall timer, type-the-answer |

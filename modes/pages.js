@@ -58,6 +58,8 @@
         <div class="small muted">= mastered cards (${stats.mastered}/${stats.total}) × ½ + last mock (${st.mocks.length ? lastMock + "%" : "none yet"}) × ½</div>
         <button class="btn primary" id="nextBtn" type="button" style="width:100%;margin-top:14px">Next best action → ${esc(actLabel)}</button>
       </div></div>`);
+    if (App.routes.crash) root.append(el(`<a class="card crash-callout" href="#/crash"><strong>Short on time? Take the 30-minute crash course</strong>
+      <span>Big ideas, every name with its context, the story patterns, images and places — then a test on all of it.</span></a>`));
     root.append(hero);
     const tickCountdown = () => {
       const left = EXAM_END - Date.now();
